@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tiipee — Plus tu décroches, plus tu gagnes.</title>
+  <meta name="description" content="Tiipee récompense les enfants qui réduisent leur temps d'écran. Le parent fixe les règles, l'enfant gagne son argent de poche en posant son téléphone.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%2300C853'/%3E%3Ccircle cx='38' cy='32' r='6' fill='white'/%3E%3Crect x='32' y='42' width='12' height='38' rx='6' fill='white'/%3E%3Ccircle cx='62' cy='32' r='6' fill='white'/%3E%3Crect x='56' y='42' width='12' height='38' rx='6' fill='white'/%3E%3C/svg%3E">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{--emerald:#00C853;--emerald-d:#00A040;--gold:#FFD700;--ink:#0A1A0E;--muted:#5b6b60;--bg:#ffffff;--soft:#f3f8f4}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.6}
+    .wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+    a{color:inherit;text-decoration:none}
+    .wordmark{font-weight:800;letter-spacing:-.5px}
+    .wordmark .ii{color:var(--gold)}
+    /* nav */
+    nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
+    nav .logo{display:flex;align-items:center;gap:10px;font-size:22px}
+    nav .logo .mark{width:34px;height:34px;border-radius:9px;background:var(--emerald);display:flex;align-items:center;justify-content:center}
+    nav .links a{color:var(--muted);font-size:15px;margin-left:24px}
+    nav .links a:hover{color:var(--ink)}
+    /* hero */
+    .hero{text-align:center;padding:64px 0 72px;background:radial-gradient(120% 90% at 50% 0%,#eafaf0 0%,#ffffff 60%)}
+    .hero .big{font-size:64px;line-height:1;margin-bottom:18px}
+    .hero h1{font-size:34px;font-weight:800;letter-spacing:-1px;margin-bottom:16px}
+    .hero p{font-size:18px;color:var(--muted);max-width:560px;margin:0 auto 28px}
+    .cta{display:inline-flex;align-items:center;gap:10px;background:var(--emerald);color:#fff;font-weight:700;padding:14px 26px;border-radius:14px;font-size:16px;box-shadow:0 8px 24px rgba(0,200,83,.28)}
+    .cta:hover{background:var(--emerald-d)}
+    .soon{display:block;margin-top:14px;color:var(--muted);font-size:14px}
+    /* section */
+    section{padding:64px 0}
+    .sec-title{text-align:center;font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px}
+    .sec-sub{text-align:center;color:var(--muted);margin-bottom:44px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+    .card{background:var(--soft);border:1px solid #e6efe9;border-radius:18px;padding:26px}
+    .card .emoji{font-size:30px;margin-bottom:12px}
+    .card h3{font-size:17px;margin-bottom:8px}
+    .card p{color:var(--muted);font-size:15px}
+    .steps{counter-reset:s;display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+    .step{position:relative;padding-top:8px}
+    .step .n{width:38px;height:38px;border-radius:50%;background:var(--emerald);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+    .step h3{font-size:17px;margin-bottom:6px}
+    .step p{color:var(--muted);font-size:15px}
+    .band{background:var(--ink);color:#fff;border-radius:24px;padding:48px;text-align:center;margin:24px 0}
+    .band h2{font-size:26px;font-weight:800;margin-bottom:12px}
+    .band p{color:#bfe9cf;max-width:620px;margin:0 auto;font-size:16px}
+    .band .ii{color:var(--gold)}
+    /* footer */
+    footer{border-top:1px solid #e6efe9;padding:40px 0;color:var(--muted);font-size:14px}
+    footer .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center}
+    footer a{color:var(--muted);margin-right:20px}
+    footer a:hover{color:var(--ink)}
+    @media(max-width:760px){.grid,.steps{grid-template-columns:1fr}.hero h1{font-size:26px}.hero .big{font-size:48px}.band{padding:32px 20px}}
+  </style>
+</head>
+<body>
+
+  <div class="wrap">
+    <nav>
+      <a class="logo" href="/">
+        <span class="mark">
+          <svg width="22" height="22" viewBox="0 0 100 100"><circle cx="38" cy="32" r="6" fill="white"/><rect x="32" y="42" width="12" height="38" rx="6" fill="white"/><circle cx="62" cy="32" r="6" fill="white"/><rect x="56" y="42" width="12" height="38" rx="6" fill="white"/></svg>
+        </span>
+        <span class="wordmark">t<span class="ii">ii</span>pee</span>
+      </a>
+      <div class="links">
+        <a href="#comment">Comment ça marche</a>
+        <a href="#parents">Pour les parents</a>
+        <a href="mailto:contact@tiipee.com">Contact</a>
+      </div>
+    </nav>
+  </div>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="big wordmark">t<span class="ii">ii</span>pee</div>
+      <h1>Plus tu décroches, plus tu gagnes.</h1>
+      <p>Tiipee transforme le temps loin des écrans en argent de poche. Le parent fixe les règles, l'enfant gagne sa récompense en posant son téléphone.</p>
+      <a class="cta" href="mailto:contact@tiipee.com">Être prévenu du lancement</a>
+      <span class="soon">📱 Bientôt disponible sur Google Play</span>
+    </div>
+  </header>
+
+  <section id="comment">
+    <div class="wrap">
+      <h2 class="sec-title">Comment ça marche</h2>
+      <p class="sec-sub">Simple, transparent, motivant — pour toute la famille.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="n">1</div>
+          <h3>Le parent fixe les règles</h3>
+          <p>Un socle garanti chaque semaine, un bonus par temps d'écran évité, un plafond journalier et une plage horaire. Zéro conflit.</p>
+        </div>
+        <div class="step">
+          <div class="n">2</div>
+          <h3>L'enfant pose son téléphone</h3>
+          <p>Chaque pause d'écran pendant la plage active fait grimper ses gains, en temps réel. Séries, badges et objectifs l'encouragent.</p>
+        </div>
+        <div class="step">
+          <div class="n">3</div>
+          <h3>Le parent verse la récompense</h3>
+          <p>En fin de semaine, le parent valide le versement et le règle par son moyen habituel. Argent réel, mérité.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--soft)">
+    <div class="wrap">
+      <h2 class="sec-title">Ce que Tiipee apporte</h2>
+      <p class="sec-sub">Une approche bienveillante du temps d'écran.</p>
+      <div class="grid">
+        <div class="card"><div class="emoji">📵</div><h3>Récompense positive</h3><p>On valorise l'effort de décrocher, plutôt que d'interdire. L'enfant est acteur, pas surveillé.</p></div>
+        <div class="card"><div class="emoji">🛡️</div><h3>Vous gardez le contrôle</h3><p>Montants, plafonds, horaires, jour de versement : tout est paramétrable par le parent.</p></div>
+        <div class="card"><div class="emoji">📱</div><h3>Bien-être numérique</h3><p>Suivez le temps d'écran de votre enfant, en toute transparence, sans flicage par application.</p></div>
+        <div class="card"><div class="emoji">🔥</div><h3>Motivation durable</h3><p>Séries de jours, badges et défis quotidiens entretiennent l'habitude sur le long terme.</p></div>
+        <div class="card"><div class="emoji">💶</div><h3>De l'argent réel</h3><p>Pas de points virtuels : un vrai argent de poche, versé par le parent, qui responsabilise.</p></div>
+        <div class="card"><div class="emoji">🔒</div><h3>Données protégées</h3><p>Conforme RGPD, données hébergées en France, protection renforcée des mineurs.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="parents">
+    <div class="wrap">
+      <div class="band">
+        <h2>Pensé pour les parents, adopté par les enfants</h2>
+        <p>T<span class="ii">ii</span>pee remplace les disputes autour du téléphone par un objectif commun. L'enfant comprend la valeur de son temps, le parent encourage sans punir.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap row">
+      <div>© 2026 Tiipee — Tous droits réservés</div>
+      <div>
+        <a href="/confidentialite.html">Confidentialité</a>
+        <a href="/mentions-legales.html">Mentions légales</a>
+        <a href="mailto:contact@tiipee.com">contact@tiipee.com</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
