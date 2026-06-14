@@ -4,6 +4,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/supabase/supabase_service.dart';
+import '../../../core/notifications/notification_service.dart';
+import '../../subscription/revenue_cat_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -31,6 +33,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
       if (!mounted) return;
       if (response.user != null) {
+        // Initialise RevenueCat dès le login (sinon Purchases reste non
+        // configuré jusqu'au prochain démarrage → crash iOS sur getCustomerInfo).
+        try {
+          await initRevenueCat(response.user!.id);
+        } catch (_) {}
+        saveFCMToken(response.user!.id);
         final user = await getCurrentUser();
         if (!mounted) return;
         context.go(user?.role.name == 'child' ? '/child' : '/parent');

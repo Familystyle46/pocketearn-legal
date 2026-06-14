@@ -23,6 +23,12 @@ Future<void> initRevenueCat(String userId) async {
 
 final subscriptionProvider = FutureProvider<bool>((ref) async {
   try {
+    // Garde : si le SDK n'est pas configuré (ex. juste après login avant init),
+    // ne PAS appeler getCustomerInfo — sur iOS c'est un fatalError non
+    // rattrapable qui crashe l'app. On bascule sur le fallback Supabase.
+    if (!await Purchases.isConfigured) {
+      return checkTrialAccess();
+    }
     final info = await Purchases.getCustomerInfo();
     return info.entitlements.active.containsKey(kEntitlementPremium);
   } catch (_) {

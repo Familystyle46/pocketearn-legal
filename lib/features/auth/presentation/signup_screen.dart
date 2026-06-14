@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../shared/models/user_model.dart';
+import '../../subscription/revenue_cat_service.dart';
 
 class SignupScreen extends ConsumerStatefulWidget {
   const SignupScreen({super.key});
@@ -48,6 +49,11 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         await supabase.from('users').update({
           'rgpd_consent_at': DateTime.now().toIso8601String(),
         }).eq('id', response.user!.id);
+        // Initialise RevenueCat dès l'inscription (évite le crash iOS si
+        // Purchases est appelé avant le prochain démarrage).
+        try {
+          await initRevenueCat(response.user!.id);
+        } catch (_) {}
       }
       // Item 1 — email de bienvenue (non bloquant)
       supabase.functions.invoke('send-welcome-email', body: {
