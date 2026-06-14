@@ -40,6 +40,11 @@ final _weeklyPaidOutProvider =
   return getWeeklyPaidOut(childId);
 });
 
+final _screenTimeProvider =
+    FutureProvider.family<Map<DateTime, int>, String>((ref, childId) {
+  return getWeeklyScreenTime(childId);
+});
+
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -90,6 +95,11 @@ class ChildDetailScreen extends ConsumerWidget {
                       _WeekChartCard(
                           statsAsync: statsAsync,
                           configAsync: configAsync),
+                      const SizedBox(height: 16),
+                      _DigitalWellbeingCard(
+                          childName: child.name,
+                          screenTimeAsync:
+                              ref.watch(_screenTimeProvider(childId))),
                       const SizedBox(height: 16),
                       _StatsRow(
                           streakAsync: streakAsync,
@@ -500,6 +510,198 @@ class _BarChart extends StatelessWidget {
                     : isToday
                         ? AppColors.emerald.withValues(alpha: 0.4)
                         : AppColors.parentDarkBorder,
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ── BIEN-ÊTRE NUMÉRIQUE (temps d'écran) ───────────────────────────────────────
+
+class _DigitalWellbeingCard extends StatelessWidget {
+  final String childName;
+  final AsyncValue<Map<DateTime, int>> screenTimeAsync;
+
+  const _DigitalWellbeingCard({
+    required this.childName,
+    required this.screenTimeAsync,
+  });
+
+  static String _fmtHm(int minutes) {
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    if (h > 0) return m > 0 ? '${h}h${m.toString().padLeft(2, '0')}' : '${h}h';
+    return '${m}min';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return screenTimeAsync.when(
+      // Pas de données (iOS, ou suivi non activé par l'enfant) → carte masquée.
+      data: (map) {
+        if (map.isEmpty || map.values.every((v) => v == 0)) {
+          return const SizedBox.shrink();
+        }
+        final entries = map.entries.toList()
+          ..sort((a, b) => a.key.compareTo(b.key));
+
+        final now = DateTime.now();
+        bool isToday(DateTime d) =>
+            d.year == now.year && d.month == now.month && d.day == now.day;
+
+        final todayMinutes = entries
+            .firstWhere((e) => isToday(e.key),
+                orElse: () => MapEntry(now, 0))
+            .value;
+        final daysWithData = entries.where((e) => e.value > 0).length;
+        final totalMinutes = entries.fold(0, (s, e) => s + e.value);
+        final avgMinutes =
+            daysWithData > 0 ? (totalMinutes / daysWithData).round() : 0;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.parentDarkCard,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.parentDarkBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text('📱 Temps d\'écran de $childName',
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            color: AppColors.textLight)),
+                  ),
+                  Text('~${_fmtHm(avgMinutes)}/jour',
+                      style: const TextStyle(
+                          color: AppColors.textMuted, fontSize: 11)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(_fmtHm(todayMinutes),
+                      style: const TextStyle(
+                          color: AppColors.violet,
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          height: 1.1)),
+                  const SizedBox(width: 6),
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 4),
+                    child: Text("aujourd'hui",
+                        style: TextStyle(
+                            color: AppColors.textMuted, fontSize: 12)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                height: 120,
+                child: _ScreenTimeChart(entries: entries, isToday: isToday),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _ScreenTimeChart extends StatelessWidget {
+  final List<MapEntry<DateTime, int>> entries;
+  final bool Function(DateTime) isToday;
+
+  const _ScreenTimeChart({required this.entries, required this.isToday});
+
+  static const _labels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  @override
+  Widget build(BuildContext context) {
+    final maxY = entries.fold(0, (m, e) => e.value > m ? e.value : m);
+    final chartMax = (maxY == 0 ? 60 : maxY).toDouble() * 1.3;
+
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: chartMax,
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (_) => AppColors.parentDarkSurface,
+            getTooltipItem: (group, _, rod, __) {
+              final min = entries[group.x].value;
+              final h = min ~/ 60;
+              final m = min % 60;
+              return BarTooltipItem(
+                h > 0 ? '${h}h${m}m' : '${m}m',
+                const TextStyle(
+                    color: AppColors.textLight, fontWeight: FontWeight.bold),
+              );
+            },
+          ),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, _) {
+                final idx = value.toInt();
+                if (idx < 0 || idx >= entries.length) {
+                  return const SizedBox.shrink();
+                }
+                final today = isToday(entries[idx].key);
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    _labels[entries[idx].key.weekday - 1],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight:
+                          today ? FontWeight.bold : FontWeight.normal,
+                      color:
+                          today ? AppColors.violet : AppColors.textMuted,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          leftTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles:
+              const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        barGroups: entries.asMap().entries.map((entry) {
+          final idx = entry.key;
+          final today = isToday(entry.value.key);
+          return BarChartGroupData(
+            x: idx,
+            barRods: [
+              BarChartRodData(
+                toY: entry.value.value.toDouble(),
+                width: 28,
+                borderRadius: BorderRadius.circular(6),
+                color: today
+                    ? AppColors.violet
+                    : AppColors.violet.withValues(alpha: 0.4),
               ),
             ],
           );

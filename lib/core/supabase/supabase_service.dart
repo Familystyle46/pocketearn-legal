@@ -61,13 +61,21 @@ Future<List<AppUser>> getChildren(String familyId) async {
 }
 
 Future<AppUser?> joinFamilyByCode(String inviteCode) async {
-  final data = await supabase
-      .from('users')
-      .select()
-      .eq('invite_code', inviteCode.toUpperCase())
-      .maybeSingle();
-  if (data == null) return null;
-  return AppUser.fromJson(data);
+  // Passe par une Edge Function (service role) car l'enfant n'est pas encore auth
+  final response = await supabase.functions.invoke(
+    'verify-invite-code',
+    body: {'inviteCode': inviteCode.toUpperCase()},
+  );
+  if (response.status != 200) return null;
+  final data = response.data as Map<String, dynamic>?;
+  if (data == null || data['valid'] != true) return null;
+  // Retourne un AppUser minimal pour confirmer que le code est valide
+  return AppUser(
+    id: '',
+    familyId: '',
+    role: UserRole.child,
+    name: data['childName'] as String? ?? '',
+  );
 }
 
 /// Crée un profil enfant via la Edge Function (appelée par le parent)
@@ -290,6 +298,52 @@ Future<List<DayStat>> getWeeklyStats(String childId) async {
     durationMinutes: row['duration_minutes'] as int,
     earnedCents: row['earned_cents'] as int,
   )).toList();
+}
+
+// ── Temps d'écran (bien-être numérique) ───────────────────────────────────────
+// Découplé de la chaîne de gains : alimente uniquement l'affichage parent.
+
+/// Temps d'écran de la semaine courante (lun→dim), zero-fillé sur 7 jours.
+/// Renvoie une map { date (jour) → minutes }.
+Future<Map<DateTime, int>> getWeeklyScreenTime(String childId) async {
+  final data = await supabase.rpc(
+    'get_weekly_screen_time',
+    params: {'p_child_id': childId},
+  );
+  final result = <DateTime, int>{};
+  for (final row in (data as List)) {
+    result[DateTime.parse(row['day_date'])] = row['screen_minutes'] as int;
+  }
+  return result;
+}
+
+/// Remonte le temps d'écran quotidien (depuis le device enfant) vers Supabase.
+/// [days] : liste d'entrées {"day": "yyyy-MM-dd", "minutes": int}.
+/// Upsert idempotent sur (child_id, day) — re-jouable sans effet de bord.
+Future<void> upsertScreenTime(String childId, List<Map<String, dynamic>> days) async {
+  if (days.isEmpty) return;
+  final rows = days
+      .map((d) => {
+            'child_id': childId,
+            'day': d['day'],
+            'minutes': d['minutes'],
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+      .toList();
+  await supabase.from('screen_time_daily').upsert(rows, onConflict: 'child_id,day');
+}
+
+/// iOS : règle les gains du jour à partir de l'usage mesuré (Family Controls).
+/// Convertit l'usage en équivalent écran-éteint et applique la même formule
+/// qu'Android, via la RPC sécurisée `settle_ios_screen_time` (idempotente).
+/// [day] : "yyyy-MM-dd". Renvoie le bonus en cents réglé pour ce jour.
+Future<int> settleIosScreenTime(String childId, String day, int usedMinutes) async {
+  final res = await supabase.rpc('settle_ios_screen_time', params: {
+    'p_child_id': childId,
+    'p_day': day,
+    'p_used_window_minutes': usedMinutes,
+  });
+  return (res as int?) ?? 0;
 }
 
 Future<int> getStreak(String childId) async {

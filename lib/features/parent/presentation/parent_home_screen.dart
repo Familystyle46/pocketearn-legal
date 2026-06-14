@@ -17,6 +17,15 @@ final currentUserProvider =
 final _trialDaysLeftProvider =
     FutureProvider<int>((ref) => trialDaysLeft());
 
+// -1 = premium actif, 0 = expiré, >0 = jours restants
+final _subscriptionStatusProvider = FutureProvider<int>((ref) async {
+  final days = await trialDaysLeft();
+  if (days > 0) return days;
+  final hasAccess = await checkTrialAccess();
+  // checkTrialAccess retourne true si active en base
+  return hasAccess ? -1 : 0;
+});
+
 final childrenProvider = FutureProvider<List<AppUser>>((ref) async {
   final user = await ref.watch(currentUserProvider.future);
   if (user == null) return [];
@@ -119,12 +128,43 @@ class ParentHomeScreen extends ConsumerWidget {
                 ),
               ),
 
-              // ── BANNIÈRE TRIAL ──────────────────────────────────
+              // ── BANNIÈRE TRIAL / PREMIUM ────────────────────────
               SliverToBoxAdapter(
-                child: ref.watch(_trialDaysLeftProvider).maybeWhen(
-                  data: (days) {
-                    if (days <= 0) return const SizedBox.shrink();
-                    final isUrgent = days <= 2;
+                child: ref.watch(_subscriptionStatusProvider).maybeWhen(
+                  data: (status) {
+                    // status : -1 = premium actif, 0 = expiré, >0 = jours restants
+                    if (status == -1) {
+                      // ✅ Premium actif
+                      return Container(
+                        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1B3A2B),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.emerald, width: 1),
+                        ),
+                        child: const Row(
+                          children: [
+                            Text('✅', style: TextStyle(fontSize: 16)),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Premium actif',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.textLight,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    if (status == 0) return const SizedBox.shrink();
+                    // Trial en cours
+                    final isUrgent = status <= 2;
                     return GestureDetector(
                       onTap: () => context.push('/paywall'),
                       child: Container(
@@ -150,9 +190,9 @@ class ParentHomeScreen extends ConsumerWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                days == 1
+                                status == 1
                                     ? 'Dernier jour d\'essai — abonnez-vous pour continuer'
-                                    : 'Essai gratuit — $days jours restants',
+                                    : 'Essai gratuit — $status jours restants',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: isUrgent

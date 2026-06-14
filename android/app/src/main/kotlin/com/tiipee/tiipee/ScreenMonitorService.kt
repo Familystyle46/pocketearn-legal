@@ -27,15 +27,40 @@ class ScreenMonitorService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             when (intent.action) {
                 Intent.ACTION_SCREEN_OFF -> {
-                    eventSink?.success(mapOf("type" to "screen_off", "ts" to System.currentTimeMillis()))
+                    val ts = System.currentTimeMillis()
+                    // Persiste le début de session côté natif : survit à la
+                    // mort du moteur Flutter (l'app n'a pas besoin d'être ouverte).
+                    prefs().edit().putLong("pending_start", ts).apply()
+                    eventSink?.success(mapOf("type" to "screen_off", "ts" to ts))
                     updateNotification(screenOff = true)
                 }
                 Intent.ACTION_SCREEN_ON -> {
-                    eventSink?.success(mapOf("type" to "screen_on", "ts" to System.currentTimeMillis()))
+                    val end = System.currentTimeMillis()
+                    val start = prefs().getLong("pending_start", 0L)
+                    if (start > 0L) {
+                        recordSession(start, end)
+                        prefs().edit().remove("pending_start").apply()
+                    }
+                    eventSink?.success(mapOf("type" to "screen_on", "ts" to end))
                     updateNotification(screenOff = false)
                 }
             }
         }
+    }
+
+    private fun prefs() =
+        getSharedPreferences("tiipee_sessions", Context.MODE_PRIVATE)
+
+    /** Ajoute une session terminée à la file locale (lue ensuite par Flutter). */
+    private fun recordSession(start: Long, end: Long) {
+        val dur = end - start
+        // Ignore les sessions < 1 min ou aberrantes (> 12h) — cohérent avec saveSession.
+        if (dur < 60_000L || dur > 12L * 3_600_000L) return
+        try {
+            val arr = org.json.JSONArray(prefs().getString("sessions", "[]"))
+            arr.put(org.json.JSONObject().put("start", start).put("end", end))
+            prefs().edit().putString("sessions", arr.toString()).apply()
+        } catch (e: Exception) { /* ignoré : ne jamais crasher le service */ }
     }
 
     override fun onCreate() {

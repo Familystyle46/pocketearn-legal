@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io' show Platform;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,7 +63,7 @@ class ChildHomeScreen extends ConsumerStatefulWidget {
 }
 
 class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
 
   RealtimeChannel? _realtimeChannel;
   Timer? _ticker;
@@ -74,6 +75,19 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
 
   // Utilisé pour sauvegarder la session au bon moment
   String? _userId;
+
+  // Suivi du temps d'écran (bien-être numérique) — optionnel, non bloquant.
+  bool _usageGranted = false;
+
+  // Exemption d'optimisation batterie (fiabilité du suivi en arrière-plan).
+  bool _batteryOk = true;
+
+  // Évite deux synchros simultanées de la file de sessions (anti double-comptage).
+  bool _flushing = false;
+
+  // iOS Screen Time (Family Controls) : suivi réel du temps d'écran via
+  // l'extension DeviceActivityMonitor. Indépendant du flux argent.
+  bool _iosTrackingActive = false;
 
   late AnimationController _pulseController;
   late AnimationController _ringController;
@@ -96,6 +110,8 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
       if (_sessionActive) setState(() => _sessionSeconds++);
     });
 
+    WidgetsBinding.instance.addObserver(this);
+
     // Pré-charge l'userId et souscrit au realtime
     getCurrentUser().then((user) {
       if (!mounted || user == null) return;
@@ -106,6 +122,11 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
           ref.invalidate(_todayBonusProvider(user.id));
         }
       });
+      // Suivi temps d'écran : vérifie la permission et remonte les données.
+      _refreshScreenTime();
+      _refreshScreenTimeIOS();
+      // Synchronise les sessions enregistrées en arrière-plan (app fermée).
+      _flushPendingSessions();
     });
 
     // Détection automatique sur Android
@@ -117,12 +138,113 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pulseController.dispose();
     _ringController.dispose();
     _ticker?.cancel();
     _screenSubscription?.cancel();
     _realtimeChannel?.unsubscribe();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Au retour dans l'app (ex. après avoir accordé la permission dans les
+    // réglages), on re-vérifie et on re-synchronise le temps d'écran.
+    if (state == AppLifecycleState.resumed) {
+      _refreshScreenTime();
+      _refreshScreenTimeIOS();
+      _flushPendingSessions();
+    }
+  }
+
+  /// Vérifie la permission "Accès à l'usage" et, si accordée, remonte le
+  /// temps d'écran des 7 derniers jours vers Supabase.
+  /// Entièrement non bloquant : la moindre erreur est ignorée silencieusement
+  /// et n'affecte aucun autre flux de l'app.
+  Future<void> _refreshScreenTime() async {
+    if (!ScreenTimeService.supportsAutoDetection) return;
+    try {
+      // État de l'exemption batterie (indépendant de la permission d'usage).
+      final batteryOk =
+          await ScreenTimeService.isIgnoringBatteryOptimizations();
+      if (mounted && batteryOk != _batteryOk) {
+        setState(() => _batteryOk = batteryOk);
+      }
+
+      final granted = await ScreenTimeService.hasPermission();
+      if (mounted && granted != _usageGranted) {
+        setState(() => _usageGranted = granted);
+      }
+      if (!granted || _userId == null) return;
+      final days = await ScreenTimeService.getDailyScreenOnMinutes(days: 7);
+      await upsertScreenTime(_userId!, days);
+    } catch (_) {
+      // Silencieux : le suivi du temps d'écran ne doit jamais perturber l'app.
+    }
+  }
+
+  /// iOS uniquement : si l'autorisation Family Controls est accordée et qu'une
+  /// sélection d'apps existe, (re)démarre le monitoring et remonte les minutes
+  /// réelles d'usage vers Supabase (même format qu'Android, table screen_time_daily).
+  /// Entièrement non bloquant et découplé du flux argent.
+  Future<void> _refreshScreenTimeIOS() async {
+    if (!Platform.isIOS) return;
+    try {
+      final granted = await ScreenTimeService.hasPermission();
+      final hasSelection = await ScreenTimeService.hasAppSelection();
+      final active = granted && hasSelection;
+      if (mounted && active != _iosTrackingActive) {
+        setState(() => _iosTrackingActive = active);
+      }
+      if (!active || _userId == null) return;
+      // Idempotent : garantit que le monitoring tourne (relancé au démarrage).
+      await ScreenTimeService.startScreenTimeMonitoring();
+      final days = await ScreenTimeService.getDailyScreenOnMinutes(days: 7);
+      if (days.isEmpty) return;
+      // Carte « temps d'écran » du parent (usage journalier complet).
+      await upsertScreenTime(_userId!, days);
+
+      // Règlement des gains iOS pour aujourd'hui et hier (idempotent côté RPC).
+      // La RPC clampe l'usage à la plage active → comparable à Android.
+      final df = DateFormat('yyyy-MM-dd');
+      final todayKey = df.format(DateTime.now());
+      final yesterdayKey =
+          df.format(DateTime.now().subtract(const Duration(days: 1)));
+      var settled = false;
+      for (final d in days) {
+        final key = d['day'] as String?;
+        if (key == todayKey || key == yesterdayKey) {
+          await settleIosScreenTime(_userId!, key!, (d['minutes'] as int?) ?? 0);
+          settled = true;
+        }
+      }
+      if (settled && mounted) {
+        final id = _userId!;
+        ref.invalidate(_weeklyBonusProvider(id));
+        ref.invalidate(_todayBonusProvider(id));
+        ref.invalidate(_weeklyPaidOutChildProvider(id));
+      }
+    } catch (_) {
+      // Silencieux : ne doit jamais perturber l'app.
+    }
+  }
+
+  /// iOS : lance le flux d'activation du suivi du temps d'écran
+  /// (autorisation Screen Time → choix des apps → démarrage du monitoring).
+  Future<void> _activateIOSTracking() async {
+    if (!Platform.isIOS) return;
+    try {
+      await ScreenTimeService.requestPermission();
+      final granted = await ScreenTimeService.hasPermission();
+      if (!granted) return;
+      final count = await ScreenTimeService.presentAppPicker();
+      if (count <= 0) return; // annulé ou rien sélectionné
+      await ScreenTimeService.startScreenTimeMonitoring();
+      await _refreshScreenTimeIOS();
+    } catch (_) {
+      // Silencieux.
+    }
   }
 
   // ── Gestion des événements écran (Android auto-détection) ────
@@ -154,15 +276,52 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
       _sessionSeconds = 0;
       _sessionStartAt = null;
     });
-    if (startAt == null || _userId == null) return;
-    saveSession(childId: _userId!, startAt: startAt, endAt: endAt).then((_) {
-      final id = _userId!;
+
+    if (ScreenTimeService.supportsAutoDetection) {
+      // Android : la session a déjà été enregistrée par le service natif
+      // (résistant à la fermeture de l'app) → on synchronise la file.
+      _flushPendingSessions();
+    } else {
+      // iOS (mode manuel) : pas de service natif, on sauvegarde directement.
+      if (startAt == null || _userId == null) return;
+      saveSession(childId: _userId!, startAt: startAt, endAt: endAt).then((_) {
+        final id = _userId!;
+        ref.invalidate(_weeklyBonusProvider(id));
+        ref.invalidate(_weeklyPaidOutChildProvider(id));
+        ref.invalidate(_todayBonusProvider(id));
+        ref.invalidate(_streakChildProvider(id));
+        ref.invalidate(_totalSessionsProvider(id));
+      });
+    }
+  }
+
+  /// Récupère les sessions enregistrées par le service natif (y compris quand
+  /// l'app était fermée) et les synchronise vers Supabase. Android uniquement.
+  /// Non bloquant : toute erreur est ignorée.
+  Future<void> _flushPendingSessions() async {
+    if (!ScreenTimeService.supportsAutoDetection) return;
+    final id = _userId;
+    if (id == null || _flushing) return;
+    _flushing = true;
+    try {
+      final sessions = await ScreenTimeService.getAndClearPendingSessions();
+      if (sessions.isEmpty) return;
+      for (final s in sessions) {
+        final start = DateTime.fromMillisecondsSinceEpoch(s['start'] as int);
+        final end = DateTime.fromMillisecondsSinceEpoch(s['end'] as int);
+        await saveSession(childId: id, startAt: start, endAt: end);
+      }
+      if (!mounted) return;
       ref.invalidate(_weeklyBonusProvider(id));
       ref.invalidate(_weeklyPaidOutChildProvider(id));
       ref.invalidate(_todayBonusProvider(id));
       ref.invalidate(_streakChildProvider(id));
       ref.invalidate(_totalSessionsProvider(id));
-    });
+    } catch (_) {
+      // Silencieux : ne jamais perturber l'app.
+    } finally {
+      _flushing = false;
+    }
   }
 
   // Toggle manuel pour iOS (ou override Android si besoin)
@@ -214,6 +373,9 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
         final paidOutAsync          = ref.watch(_weeklyPaidOutChildProvider(user.id));
         final hasPendingAsync       = ref.watch(_hasPendingPayoutProvider(user.id));
         final config                = configAsync.value;
+        // Hors plage horaire : on n'affiche aucun gain en direct (le serveur
+        // ne crédite rien non plus). Par défaut "true" si la config charge encore.
+        final inHours               = config?.isWithinActiveHours ?? true;
         return Theme(
           data: ThemeData.dark().copyWith(
             scaffoldBackgroundColor: AppColors.childBg,
@@ -255,7 +417,7 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                         weeklyBonusAsync: weeklyBonusAsync,
                         configAsync: configAsync,
                         sessionBonusCents: _sessionBonusCents(config),
-                        isActive: _sessionActive,
+                        isActive: _sessionActive && inHours,
                         fmt: fmt,
                       ),
                       const SizedBox(height: 28),
@@ -263,7 +425,8 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                       _TimerCircle(
                         isActive: _sessionActive,
                         seconds: _sessionSeconds,
-                        bonusCents: _sessionBonusCents(config),
+                        bonusCents:
+                            inHours ? _sessionBonusCents(config) : 0,
                         pulseController: _pulseController,
                         fmt: fmt,
                         formatDuration: _formatDuration,
@@ -276,6 +439,10 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                               }
                             : null,
                       ),
+                      if (!inHours && config != null) ...[
+                        const SizedBox(height: 16),
+                        _OutOfHoursBanner(config: config),
+                      ],
                       const SizedBox(height: 24),
 
                       _DailyChallenge(
@@ -287,6 +454,40 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
 
                       _WeekStrip(config: config),
                       const SizedBox(height: 16),
+
+                      // Bandeau fiabilité : exemption batterie pour que le
+                      // suivi continue en arrière-plan (MIUI/Oppo agressifs).
+                      if (ScreenTimeService.supportsAutoDetection &&
+                          !_batteryOk) ...[
+                        _BatteryOptInBanner(
+                          onActivate: () async {
+                            await ScreenTimeService
+                                .requestIgnoreBatteryOptimizations();
+                            // Re-vérifié au retour via didChangeAppLifecycleState.
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Encart non bloquant : propose d'activer le suivi du
+                      // temps d'écran (visible tant que la permission manque).
+                      if (ScreenTimeService.supportsAutoDetection &&
+                          !_usageGranted) ...[
+                        _ScreenTimeOptIn(
+                          onActivate: () async {
+                            await ScreenTimeService.requestPermission();
+                            // La re-vérification se fait au retour via
+                            // didChangeAppLifecycleState.
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // iOS : activation du suivi Screen Time (Family Controls).
+                      if (Platform.isIOS && !_iosTrackingActive) ...[
+                        _ScreenTimeOptIn(onActivate: _activateIOSTracking),
+                        const SizedBox(height: 16),
+                      ],
 
                       streakAsync.when(
                         data: (streak) => todayBonusAsync.when(
@@ -1022,6 +1223,165 @@ class _WeekStrip extends StatelessWidget {
             ],
           );
         }),
+      ),
+    );
+  }
+}
+
+// ── BANDEAU HORS PLAGE HORAIRE ────────────────────────────────────────────────
+
+class _OutOfHoursBanner extends StatelessWidget {
+  final ChildConfiguration config;
+
+  const _OutOfHoursBanner({required this.config});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Text('⏰', style: TextStyle(fontSize: 18)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'En dehors des heures qui rapportent',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Tu gagnes de l\'argent entre ${config.activeHoursLabel}. Reviens pendant ce créneau ! 😊',
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── OPT-IN TEMPS D'ÉCRAN ──────────────────────────────────────────────────────
+
+class _BatteryOptInBanner extends StatelessWidget {
+  final Future<void> Function() onActivate;
+
+  const _BatteryOptInBanner({required this.onActivate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.amber.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Text('🔋', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Garde le suivi actif',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Autorise Tiipee à tourner en arrière-plan pour que tes gains comptent même app fermée.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onActivate,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.amber,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            child: const Text('Activer',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScreenTimeOptIn extends StatelessWidget {
+  final Future<void> Function() onActivate;
+
+  const _ScreenTimeOptIn({required this.onActivate});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.childCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.childBorder),
+      ),
+      child: Row(
+        children: [
+          const Text('📊', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Suivi du temps d\'écran',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Active-le pour partager ton temps d\'écran avec tes parents.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: onActivate,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.emerald,
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+            child: const Text('Activer',
+                style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

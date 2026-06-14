@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/supabase/supabase_service.dart';
 
 // Clés RevenueCat — https://app.revenuecat.com
-// Clé de test universelle (préfixe test_) — valable iOS + Android en dev
-// En production : remplacer par les clés spécifiques goog_... et appl_...
-const _revenueCatAndroidKey = 'test_pqoVHEsolyYQDXSVpTfOBbKYFjL';
-const _revenueCatIosKey     = 'test_pqoVHEsolyYQDXSVpTfOBbKYFjL';
+// Android : clé publique SDK du projet Tiipee (goog_...).
+// iOS : clé publique SDK App Store du projet Tiipee (appl_...).
+const _revenueCatAndroidKey = 'goog_AvGxpExPAvOuBQbSrLwLwJzRIYb';
+const _revenueCatIosKey     = 'appl_dSBxcpFOpUcCfAnAyjPOwvCFUfd';
 
 const kProductMonthly = 'tiipee_monthly'; // ID du produit dans Play Store / App Store
 const kProductYearly = 'tiipee_yearly';

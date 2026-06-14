@@ -32,6 +32,20 @@ class ChildConfiguration {
   /// Vrai si aujourd'hui >= jour de paiement configuré
   bool get isPaymentDayReached => DateTime.now().weekday >= paymentDay;
 
+  /// Vrai si l'heure actuelle est dans la plage où l'enfant gagne de l'argent.
+  /// Gère le cas où la plage passe minuit (ex. 20h → 6h).
+  bool get isWithinActiveHours {
+    final h = DateTime.now().hour;
+    if (activeHoursEnd > activeHoursStart) {
+      return h >= activeHoursStart && h < activeHoursEnd;
+    }
+    // Plage qui passe minuit : active si après le début OU avant la fin.
+    return h >= activeHoursStart || h < activeHoursEnd;
+  }
+
+  /// Plage horaire formatée pour l'affichage, ex. "17h–22h".
+  String get activeHoursLabel => '${activeHoursStart}h–${activeHoursEnd}h';
+
   static const List<String> dayLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
   String get paymentDayLabel => dayLabels[paymentDay - 1];
 

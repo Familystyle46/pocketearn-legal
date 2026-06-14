@@ -12,5 +12,10 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    // Module natif iOS additif : temps d'écran via Family Controls.
+    // N'a aucune incidence sur Android (couche Dart branchée sur Platform).
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "ScreenTimePlugin") {
+      ScreenTimePlugin.register(with: registrar)
+    }
   }
 }

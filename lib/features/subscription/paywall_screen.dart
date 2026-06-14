@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:go_router/go_router.dart';
+import '../../core/theme/app_colors.dart';
 import 'revenue_cat_service.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -22,14 +24,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.childBg,
       appBar: widget.isDismissible
           ? AppBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
               leading: IconButton(
-                icon: const Icon(Icons.close, color: Colors.black54),
-                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close, color: AppColors.textMuted),
+                onPressed: () => context.pop(),
               ),
             )
           : null,
@@ -53,15 +55,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.textLight,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
+                    const Text(
                       'Tout ce qu\'il faut pour motiver\nvos enfants à poser leur téléphone.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 15,
-                        color: Colors.grey[600],
+                        color: AppColors.textMuted,
                         height: 1.4,
                       ),
                     ),
@@ -83,7 +86,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               // ── PLANS ─────────────────────────────────────────
               const Text(
                 'Choisissez votre formule',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textLight),
               ),
               const SizedBox(height: 12),
 
@@ -111,7 +114,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
+                  color: AppColors.childCard,
+                  border: Border.all(color: Color(0xFF2E7D32)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Row(
@@ -179,19 +183,19 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               Center(
                 child: TextButton(
                   onPressed: _restorePurchases,
-                  child: Text(
+                  child: const Text(
                     'Restaurer mes achats',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 13),
                   ),
                 ),
               ),
 
               // Legal
-              Center(
+              const Center(
                 child: Text(
                   'Abonnement auto-renouvelable. Annulable avant renouvellement.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11),
                 ),
               ),
             ],
@@ -203,30 +207,54 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Future<void> _subscribe() async {
     setState(() => _loading = true);
-    final success =
-        _yearlySelected ? await purchaseYearly() : await purchaseMonthly();
-    if (mounted) {
-      setState(() => _loading = false);
-      if (success) {
-        ref.invalidate(subscriptionProvider);
-        Navigator.pop(context, true);
-      } else {
+    try {
+      final success =
+          _yearlySelected ? await purchaseYearly() : await purchaseMonthly();
+      if (mounted) {
+        if (success) {
+          ref.invalidate(subscriptionProvider);
+          // Retour vers /parent via GoRouter (pas Navigator.pop — le paywall
+          // vient d'un redirect, la stack est vide derrière)
+          if (widget.isDismissible) {
+            context.pop();
+          } else {
+            context.go('/parent');
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Achat annulé ou échoué.')),
+          );
+        }
+      }
+    } catch (_) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Achat annulé ou échoué.')),
+          const SnackBar(content: Text('Erreur lors de l\'achat.')),
         );
       }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _restorePurchases() async {
     setState(() => _loading = true);
-    await restorePurchases();
-    if (mounted) {
-      setState(() => _loading = false);
-      ref.invalidate(subscriptionProvider);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Achats restaurés ✓')),
-      );
+    try {
+      await restorePurchases();
+      if (mounted) {
+        ref.invalidate(subscriptionProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Achats restaurés ✓')),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Aucun achat à restaurer.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -262,7 +290,7 @@ class _FeatureRow extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
+              color: AppColors.childCard,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Center(
@@ -275,16 +303,16 @@ class _FeatureRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: const TextStyle(fontWeight: FontWeight.w600)),
+                    style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textLight)),
                 Text(
                   subtitle,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 ),
               ],
             ),
           ),
           const Icon(Icons.check_circle,
-              color: Color(0xFF2E7D32), size: 18),
+              color: AppColors.emerald, size: 18),
         ],
       ),
     );
@@ -316,9 +344,9 @@ class _PlanCard extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFE8F5E9) : Colors.grey[50],
+          color: selected ? AppColors.childCard : AppColors.childBg,
           border: Border.all(
-            color: selected ? const Color(0xFF2E7D32) : Colors.grey[200]!,
+            color: selected ? AppColors.emerald : AppColors.childBorder,
             width: selected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(14),
@@ -332,16 +360,13 @@ class _PlanCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: selected
-                      ? const Color(0xFF2E7D32)
-                      : Colors.grey[400]!,
+                  color: selected ? AppColors.emerald : AppColors.textMuted,
                   width: 2,
                 ),
               ),
               child: selected
                   ? const Center(
-                      child: Icon(Icons.circle,
-                          size: 12, color: Color(0xFF2E7D32)),
+                      child: Icon(Icons.circle, size: 12, color: AppColors.emerald),
                     )
                   : null,
             ),
@@ -353,7 +378,7 @@ class _PlanCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(title,
-                          style: const TextStyle(fontWeight: FontWeight.bold)),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textLight)),
                       if (badge != null) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -377,7 +402,7 @@ class _PlanCard extends StatelessWidget {
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                   ),
                 ],
               ),
@@ -387,7 +412,7 @@ class _PlanCard extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 15,
-                color: selected ? const Color(0xFF2E7D32) : Colors.black87,
+                color: selected ? AppColors.emerald : AppColors.textLight,
               ),
             ),
           ],

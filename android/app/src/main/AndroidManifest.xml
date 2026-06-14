@@ -1,10 +1,15 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Lecture des statistiques d'usage (UsageStatsManager) -->
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
-        tools:ignore="ProtectedPermissions"
-        xmlns:tools="http://schemas.android.com/tools"/>
+        tools:ignore="ProtectedPermissions"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Public incluant des mineurs : on retire l'identifiant publicitaire
+         (hérité de Firebase) — interdit par la Politique Familles de Google -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove"/>
 
     <!-- Foreground service : obligatoire depuis Android 9 (API 28) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -13,6 +18,10 @@
 
     <!-- Notification dans la barre : obligatoire sur Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+    <!-- Exemption d'optimisation batterie : permet au service de suivi de
+         survivre en arrière-plan (indispensable sur MIUI/Oppo agressifs) -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
 
     <application
         android:label="Tiipee"

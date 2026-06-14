@@ -2,7 +2,7 @@ name: tiipee
 description: "Plus tu décroches, plus tu gagnes."
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.13+14
 
 environment:
   sdk: ^3.12.0
@@ -49,6 +49,28 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   riverpod_generator: ^2.6.1
   build_runner: ^2.4.14
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.3
+
+# Splash natif — « ii » blanc centré sur fond vert Tiipee
+flutter_native_splash:
+  color: "#00C853"
+  image: assets/icon/foreground.png
+  android: true
+  ios: true
+  android_12:
+    color: "#00C853"
+    image: assets/icon/foreground.png
+
+# Icône de lancement — « ii » blanc sur fond vert (signature Tiipee)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icon/icon.png"
+  adaptive_icon_background: "#00C853"
+  adaptive_icon_foreground: "assets/icon/foreground.png"
+  min_sdk_android: 21
 
 flutter:
   uses-material-design: true

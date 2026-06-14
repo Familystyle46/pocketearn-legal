@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../shared/widgets/tiipee_wordmark.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -71,6 +72,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             itemCount: _slides.length,
             onPageChanged: (i) => setState(() => _page = i),
             itemBuilder: (_, i) => _SlidePage(slide: _slides[i]),
+          ),
+
+          // Logotype persistant en haut
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Center(child: TiipeeWordmark(fontSize: 26)),
+              ),
+            ),
           ),
 
           // Bottom controls
