@@ -27,6 +27,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       illustrationEmojis: ['💰', '📵', '⏱️'],
     ),
     _Slide(
+      emoji: '🪄',
+      emojiSize: 72,
+      bg: Color(0xFF0F1729),
+      accentColor: AppColors.emerald,
+      title: 'Comment ça\nmarche ?',
+      subtitle:
+          '1️⃣ Tu configures les règles.\n2️⃣ Ton enfant installe Tiipee sur SON téléphone et le connecte avec ton code.\n3️⃣ Tiipee mesure le temps d\'écran et calcule ses gains — tu verses quand tu veux.',
+      illustrationEmojis: ['⚙️', '📲', '💸'],
+    ),
+    _Slide(
       emoji: '🛡️',
       emojiSize: 72,
       bg: Color(0xFF0F1729),

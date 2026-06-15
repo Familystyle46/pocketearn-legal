@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
@@ -86,6 +87,12 @@ class ChildDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
+                      // Code de connexion : visible tant qu'il existe, pour que
+                      // le parent puisse toujours le retrouver/partager.
+                      if ((child.inviteCode ?? '').isNotEmpty) ...[
+                        _ConnectionCodeCard(code: child.inviteCode!),
+                        const SizedBox(height: 16),
+                      ],
                       _WeeklyBalanceCard(
                           configAsync: configAsync,
                           statsAsync: statsAsync,
@@ -125,6 +132,72 @@ class ChildDetailScreen extends ConsumerWidget {
               child: Text('Erreur : $e',
                   style: const TextStyle(color: AppColors.textMuted))),
         ),
+      ),
+    );
+  }
+}
+
+// ── CODE DE CONNEXION ─────────────────────────────────────────────────────────
+
+/// Affiche le code de liaison de l'enfant pour que le parent puisse le
+/// retrouver et le copier à tout moment (connexion du téléphone de l'enfant).
+class _ConnectionCodeCard extends StatelessWidget {
+  final String code;
+  const _ConnectionCodeCard({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.parentDarkCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          const Text('🔗', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Code de connexion',
+                  style: TextStyle(
+                    color: AppColors.textMuted,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  code,
+                  style: const TextStyle(
+                    color: AppColors.textLight,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
+                ),
+                const Text(
+                  'À saisir sur le téléphone de ton enfant pour le connecter.',
+                  style: TextStyle(color: AppColors.textMuted, fontSize: 11.5),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.copy_rounded,
+                color: AppColors.emerald, size: 20),
+            tooltip: 'Copier',
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: code));
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Code copié ✓')),
+              );
+            },
+          ),
+        ],
       ),
     );
   }

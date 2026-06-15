@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../shared/models/user_model.dart';
@@ -204,6 +205,16 @@ class ParentHomeScreen extends ConsumerWidget {
                       ),
                     );
                   },
+                  orElse: () => const SizedBox.shrink(),
+                ),
+              ),
+
+              // ── GUIDE DÉMARRAGE PARENT (dismissible) ────────────
+              SliverToBoxAdapter(
+                child: childrenAsync.maybeWhen(
+                  data: (children) => children.isEmpty
+                      ? const SizedBox.shrink()
+                      : const _ParentSetupGuide(),
                   orElse: () => const SizedBox.shrink(),
                 ),
               ),
@@ -517,6 +528,145 @@ class _ChildCard extends ConsumerWidget {
         .animate(delay: Duration(milliseconds: index * 80))
         .fadeIn(duration: 400.ms)
         .slideY(begin: 0.1, end: 0);
+  }
+}
+
+// ── GUIDE DÉMARRAGE PARENT ────────────────────────────────────────────────────
+
+/// Carte « Comment ça marche » affichée sur l'accueil parent une fois qu'un
+/// enfant existe : rappelle les 3 étapes pour finaliser la mise en route.
+/// Dismissible (mémorisé dans les préférences). Purement informatif.
+class _ParentSetupGuide extends StatefulWidget {
+  const _ParentSetupGuide();
+
+  @override
+  State<_ParentSetupGuide> createState() => _ParentSetupGuideState();
+}
+
+class _ParentSetupGuideState extends State<_ParentSetupGuide> {
+  static const _prefKey = 'parent_setup_guide_dismissed';
+  bool _loaded = false;
+  bool _dismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) {
+        setState(() {
+          _dismissed = p.getBool(_prefKey) ?? false;
+          _loaded = true;
+        });
+      }
+    });
+  }
+
+  Future<void> _dismiss() async {
+    setState(() => _dismissed = true);
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_prefKey, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_loaded || _dismissed) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 12, 16),
+      decoration: BoxDecoration(
+        color: AppColors.parentDarkCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text('🚀', style: TextStyle(fontSize: 18)),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Finalise la mise en route',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: _dismiss,
+                borderRadius: BorderRadius.circular(20),
+                child: const Padding(
+                  padding: EdgeInsets.all(4),
+                  child: Icon(Icons.close_rounded,
+                      size: 18, color: AppColors.textMuted),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _SetupStep(
+            n: '1',
+            text: 'Installe Tiipee sur le téléphone de ton enfant.',
+          ),
+          const _SetupStep(
+            n: '2',
+            text: 'Connecte-le avec son code (visible dans sa fiche).',
+          ),
+          const _SetupStep(
+            n: '3',
+            text: 'Sur SON téléphone, active la mesure du temps d\'écran.',
+            last: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SetupStep extends StatelessWidget {
+  final String n;
+  final String text;
+  final bool last;
+
+  const _SetupStep({required this.n, required this.text, this.last = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: last ? 0 : 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.emerald.withValues(alpha: 0.15),
+            ),
+            child: Center(
+              child: Text(n,
+                  style: const TextStyle(
+                      color: AppColors.emerald,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12)),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(text,
+                  style: const TextStyle(
+                      color: AppColors.textMuted, fontSize: 13, height: 1.35)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

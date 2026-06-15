@@ -455,29 +455,21 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                       _WeekStrip(config: config),
                       const SizedBox(height: 16),
 
-                      // Bandeau fiabilité : exemption batterie pour que le
-                      // suivi continue en arrière-plan (MIUI/Oppo agressifs).
+                      // Guide d'activation du suivi (Android) : étapes claires
+                      // avec statut ✅/⚠️ + rassurance vie privée. Visible tant
+                      // qu'une des autorisations manque. Non bloquant.
                       if (ScreenTimeService.supportsAutoDetection &&
-                          !_batteryOk) ...[
-                        _BatteryOptInBanner(
-                          onActivate: () async {
-                            await ScreenTimeService
-                                .requestIgnoreBatteryOptimizations();
+                          (!_usageGranted || !_batteryOk)) ...[
+                        _ScreenTimeGuide(
+                          usageGranted: _usageGranted,
+                          batteryOk: _batteryOk,
+                          onActivateUsage: () async {
+                            await ScreenTimeService.requestPermission();
                             // Re-vérifié au retour via didChangeAppLifecycleState.
                           },
-                        ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // Encart non bloquant : propose d'activer le suivi du
-                      // temps d'écran (visible tant que la permission manque).
-                      if (ScreenTimeService.supportsAutoDetection &&
-                          !_usageGranted) ...[
-                        _ScreenTimeOptIn(
-                          onActivate: () async {
-                            await ScreenTimeService.requestPermission();
-                            // La re-vérification se fait au retour via
-                            // didChangeAppLifecycleState.
+                          onActivateBattery: () async {
+                            await ScreenTimeService
+                                .requestIgnoreBatteryOptimizations();
                           },
                         ),
                         const SizedBox(height: 16),
@@ -1277,57 +1269,176 @@ class _OutOfHoursBanner extends StatelessWidget {
 
 // ── OPT-IN TEMPS D'ÉCRAN ──────────────────────────────────────────────────────
 
-class _BatteryOptInBanner extends StatelessWidget {
-  final Future<void> Function() onActivate;
+/// Guide d'activation du suivi (Android) : explique le pourquoi, rassure sur la
+/// vie privée, et liste les étapes avec leur statut (✅ fait / ⚠️ à activer).
+/// Purement UI : réutilise les callbacks existants, ne change aucune logique.
+class _ScreenTimeGuide extends StatelessWidget {
+  final bool usageGranted;
+  final bool batteryOk;
+  final Future<void> Function() onActivateUsage;
+  final Future<void> Function() onActivateBattery;
 
-  const _BatteryOptInBanner({required this.onActivate});
+  const _ScreenTimeGuide({
+    required this.usageGranted,
+    required this.batteryOk,
+    required this.onActivateUsage,
+    required this.onActivateBattery,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.amber.withValues(alpha: 0.1),
+        color: AppColors.childCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.amber.withValues(alpha: 0.35)),
+        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.35)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🔋', style: TextStyle(fontSize: 22)),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Garde le suivi actif',
+          // En-tête
+          Row(
+            children: [
+              const Text('📊', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Active le suivi du temps d\'écran',
                   style: TextStyle(
                     color: AppColors.textLight,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
+                    fontSize: 15,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
-                  'Autorise Tiipee à tourner en arrière-plan pour que tes gains comptent même app fermée.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Indispensable pour que tes gains comptent. 2 étapes rapides :',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 12.5),
+          ),
+          const SizedBox(height: 14),
+
+          // Étape 1 — accès à l'usage
+          _GuideStep(
+            done: usageGranted,
+            title: 'Accès à l\'usage',
+            subtitle: 'Pour mesurer ton temps d\'écran total.',
+            onActivate: onActivateUsage,
+          ),
+          const SizedBox(height: 10),
+          // Étape 2 — exemption batterie
+          _GuideStep(
+            done: batteryOk,
+            title: 'Suivi en arrière-plan',
+            subtitle: 'Pour que ça compte même app fermée.',
+            onActivate: onActivateBattery,
+          ),
+
+          const SizedBox(height: 14),
+          // Rassurance vie privée
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.childBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Row(
+              children: [
+                Text('🔒', style: TextStyle(fontSize: 14)),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Tes parents voient seulement ton temps d\'écran total — jamais le détail de tes apps.',
+                    style: TextStyle(color: AppColors.textMuted, fontSize: 11.5, height: 1.3),
+                  ),
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Une étape du guide : pastille de statut + texte + bouton « Activer » si à faire.
+class _GuideStep extends StatelessWidget {
+  final bool done;
+  final String title;
+  final String subtitle;
+  final Future<void> Function() onActivate;
+
+  const _GuideStep({
+    required this.done,
+    required this.title,
+    required this.subtitle,
+    required this.onActivate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        // Pastille statut
+        Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: done
+                ? AppColors.emerald.withValues(alpha: 0.15)
+                : AppColors.amber.withValues(alpha: 0.15),
+          ),
+          child: Center(
+            child: Icon(
+              done ? Icons.check_rounded : Icons.priority_high_rounded,
+              size: 16,
+              color: done ? AppColors.emerald : AppColors.amber,
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13.5,
+                  decoration: done ? TextDecoration.lineThrough : null,
+                  decorationColor: AppColors.textMuted,
+                ),
+              ),
+              Text(subtitle,
+                  style: const TextStyle(color: AppColors.textMuted, fontSize: 11.5)),
+            ],
+          ),
+        ),
+        if (!done) ...[
           const SizedBox(width: 8),
           TextButton(
             onPressed: onActivate,
             style: TextButton.styleFrom(
-              foregroundColor: AppColors.amber,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              foregroundColor: AppColors.emerald,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              minimumSize: const Size(0, 0),
             ),
             child: const Text('Activer',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
           ),
-        ],
-      ),
+        ] else
+          const Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: Text('Fait ✓',
+                style: TextStyle(color: AppColors.emerald, fontSize: 12, fontWeight: FontWeight.w600)),
+          ),
+      ],
     );
   }
 }
