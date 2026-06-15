@@ -38,6 +38,29 @@ final subscriptionProvider = FutureProvider<bool>((ref) async {
   }
 });
 
+/// Statut d'abonnement pour l'accueil parent :
+/// -1 = premium actif, 0 = expiré, >0 = nombre de jours d'essai restants.
+/// Vérifie RevenueCat EN PREMIER (premium visible immédiatement après l'achat,
+/// sans attendre le webhook), puis Supabase comme source de vérité serveur.
+final subscriptionStatusProvider = FutureProvider<int>((ref) async {
+  // 1) RevenueCat : entitlement premium actif détecté tout de suite après achat.
+  try {
+    if (await Purchases.isConfigured) {
+      final info = await Purchases.getCustomerInfo();
+      if (info.entitlements.active.containsKey(kEntitlementPremium)) {
+        return -1;
+      }
+    }
+  } catch (_) {
+    // ignore → on bascule sur Supabase
+  }
+  // 2) Supabase : essai en cours (>0 jours) ou abonnement actif (via webhook).
+  final days = await trialDaysLeft();
+  if (days > 0) return days;
+  final hasAccess = await checkTrialAccess();
+  return hasAccess ? -1 : 0;
+});
+
 /// Prix affichés sur le paywall — RÉELS et localisés (jamais codés en dur),
 /// récupérés depuis l'offering RevenueCat (= vrai prix de chaque store).
 class PaywallPrices {

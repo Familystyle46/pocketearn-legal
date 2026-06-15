@@ -14,17 +14,9 @@ import '../../subscription/revenue_cat_service.dart';
 final currentUserProvider =
     FutureProvider<AppUser?>((ref) => getCurrentUser());
 
-final _trialDaysLeftProvider =
-    FutureProvider<int>((ref) => trialDaysLeft());
-
-// -1 = premium actif, 0 = expiré, >0 = jours restants
-final _subscriptionStatusProvider = FutureProvider<int>((ref) async {
-  final days = await trialDaysLeft();
-  if (days > 0) return days;
-  final hasAccess = await checkTrialAccess();
-  // checkTrialAccess retourne true si active en base
-  return hasAccess ? -1 : 0;
-});
+// Statut d'abonnement (-1 premium / 0 expiré / >0 jours d'essai) :
+// défini dans revenue_cat_service.dart (subscriptionStatusProvider), partagé
+// avec le paywall qui l'invalide après un achat.
 
 final childrenProvider = FutureProvider<List<AppUser>>((ref) async {
   final user = await ref.watch(currentUserProvider.future);
@@ -130,7 +122,7 @@ class ParentHomeScreen extends ConsumerWidget {
 
               // ── BANNIÈRE TRIAL / PREMIUM ────────────────────────
               SliverToBoxAdapter(
-                child: ref.watch(_subscriptionStatusProvider).maybeWhen(
+                child: ref.watch(subscriptionStatusProvider).maybeWhen(
                   data: (status) {
                     // status : -1 = premium actif, 0 = expiré, >0 = jours restants
                     if (status == -1) {

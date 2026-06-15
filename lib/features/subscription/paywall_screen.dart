@@ -214,6 +214,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       if (mounted) {
         if (success) {
           ref.invalidate(subscriptionProvider);
+          // Rafraîchit aussi le badge de l'accueil parent (sinon premium
+          // invisible jusqu'au redémarrage). RevenueCat est déjà actif ici.
+          ref.invalidate(subscriptionStatusProvider);
           // Retour vers /parent via GoRouter (pas Navigator.pop — le paywall
           // vient d'un redirect, la stack est vide derrière)
           if (widget.isDismissible) {
@@ -244,6 +247,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       await restorePurchases();
       if (mounted) {
         ref.invalidate(subscriptionProvider);
+        ref.invalidate(subscriptionStatusProvider);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Achats restaurés ✓')),
         );
