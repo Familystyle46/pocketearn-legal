@@ -17,12 +17,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _yearlySelected = true;
   bool _loading = false;
 
-  static const _monthlyPrice = '4,99 €';
-  static const _yearlyPrice = '39,99 €';
-  static const _yearlyMonthly = '3,33 €';
-
   @override
   Widget build(BuildContext context) {
+    // Prix RÉELS du store (localisés) ; repli si l'offering ne charge pas.
+    final prices =
+        ref.watch(paywallPricesProvider).valueOrNull ?? PaywallPrices.fallback;
     return Scaffold(
       backgroundColor: AppColors.childBg,
       appBar: widget.isDismissible
@@ -92,8 +91,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
               _PlanCard(
                 title: 'Annuel',
-                price: _yearlyPrice,
-                subtitle: '$_yearlyMonthly / mois — économisez 33%',
+                price: prices.yearly,
+                subtitle: prices.savingsPercent > 0
+                    ? '${prices.yearlyPerMonth} / mois — économisez ${prices.savingsPercent}%'
+                    : '${prices.yearlyPerMonth} / mois',
                 badge: 'Meilleure offre',
                 selected: _yearlySelected,
                 onTap: () => setState(() => _yearlySelected = true),
@@ -101,7 +102,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               const SizedBox(height: 10),
               _PlanCard(
                 title: 'Mensuel',
-                price: '$_monthlyPrice / mois',
+                price: '${prices.monthly} / mois',
                 subtitle: 'Sans engagement',
                 selected: !_yearlySelected,
                 onTap: () => setState(() => _yearlySelected = false),

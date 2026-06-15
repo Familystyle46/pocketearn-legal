@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:intl/intl.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/supabase/supabase_service.dart';
@@ -34,6 +35,64 @@ final subscriptionProvider = FutureProvider<bool>((ref) async {
   } catch (_) {
     // Fallback : vérifie le trial côté Supabase
     return checkTrialAccess();
+  }
+});
+
+/// Prix affichés sur le paywall — RÉELS et localisés (jamais codés en dur),
+/// récupérés depuis l'offering RevenueCat (= vrai prix de chaque store).
+class PaywallPrices {
+  final String monthly; // ex. "3,99 €"
+  final String yearly; // ex. "39,99 €"
+  final String yearlyPerMonth; // ex. "3,33 €"
+  final int savingsPercent; // ex. 16
+
+  const PaywallPrices({
+    required this.monthly,
+    required this.yearly,
+    required this.yearlyPerMonth,
+    required this.savingsPercent,
+  });
+
+  /// Valeurs de repli si l'offering ne charge pas (offline, sandbox…).
+  /// Alignées sur le tarif voulu : mensuel 3,99 € / annuel 39,99 €.
+  static const fallback = PaywallPrices(
+    monthly: '3,99 €',
+    yearly: '39,99 €',
+    yearlyPerMonth: '3,33 €',
+    savingsPercent: 16,
+  );
+}
+
+/// Lit les prix réels depuis RevenueCat. Le paywall doit afficher ÇA, jamais
+/// des constantes — sinon le prix affiché peut différer du prix débité.
+final paywallPricesProvider = FutureProvider<PaywallPrices>((ref) async {
+  try {
+    if (!await Purchases.isConfigured) return PaywallPrices.fallback;
+    final offerings = await Purchases.getOfferings();
+    final monthly = offerings.current?.monthly?.storeProduct;
+    final yearly = offerings.current?.annual?.storeProduct;
+    if (monthly == null || yearly == null) return PaywallPrices.fallback;
+
+    final perMonthValue = yearly.price / 12.0;
+    final perMonthStr = NumberFormat.simpleCurrency(
+      locale: 'fr_FR',
+      name: yearly.currencyCode,
+    ).format(perMonthValue);
+
+    // Économie de l'annuel vs mensuel (en %), bornée à [0, 99].
+    var savings = 0;
+    if (monthly.price > 0) {
+      savings = ((1 - perMonthValue / monthly.price) * 100).round().clamp(0, 99);
+    }
+
+    return PaywallPrices(
+      monthly: monthly.priceString,
+      yearly: yearly.priceString,
+      yearlyPerMonth: perMonthStr,
+      savingsPercent: savings,
+    );
+  } catch (_) {
+    return PaywallPrices.fallback;
   }
 });
 
