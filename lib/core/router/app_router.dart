@@ -72,6 +72,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/paywall',
         builder: (_, state) => PaywallScreen(
           isDismissible: state.uri.queryParameters['required'] != 'true',
+          isSoftTrial: state.uri.queryParameters['soft'] == 'true',
         ),
       ),
     ],

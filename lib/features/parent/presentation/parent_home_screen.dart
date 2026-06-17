@@ -44,11 +44,41 @@ final childWeeklySummaryProvider =
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
-class ParentHomeScreen extends ConsumerWidget {
+class ParentHomeScreen extends ConsumerStatefulWidget {
   const ParentHomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ParentHomeScreen> createState() => _ParentHomeScreenState();
+}
+
+class _ParentHomeScreenState extends ConsumerState<ParentHomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Nudge paywall « soft » de mi-essai (une seule fois, après le 1er rendu).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowSoftPaywall());
+  }
+
+  /// Affiche le paywall « soft » si on est dans la fenêtre de mi-essai
+  /// (1 ≤ jours restants ≤ kTrialSoftNudgeDaysLeft), pas premium, pas expiré,
+  /// et qu'il n'a pas déjà été vu. Le gate DUR (J14) reste géré par le routeur.
+  Future<void> _maybeShowSoftPaywall() async {
+    if (!mounted) return;
+    final int status;
+    try {
+      status = await ref.read(subscriptionStatusProvider.future);
+    } catch (_) {
+      return; // en cas d'échec réseau, on ne dérange pas l'utilisateur
+    }
+    // -1 = premium, 0 = expiré (déjà géré par le gate dur) → on ignore.
+    if (status < 1 || status > kTrialSoftNudgeDaysLeft) return;
+    if (await softPaywallSeen()) return;
+    if (!mounted) return;
+    context.push('/paywall?soft=true');
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final userAsync     = ref.watch(currentUserProvider);
     final childrenAsync = ref.watch(childrenProvider);
     final fmt = NumberFormat.currency(locale: 'fr_FR', symbol: '€');

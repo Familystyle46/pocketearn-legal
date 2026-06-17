@@ -2,7 +2,35 @@ import 'dart:io';
 import 'package:intl/intl.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/supabase/supabase_service.dart';
+
+/// Durée de l'essai gratuit, en jours. Source de vérité unique (le serveur ne
+/// fait qu'horodater `trial_started_at` ; l'expiration est calculée ici).
+const kTrialDays = 14;
+
+/// Seuil (en jours restants) à partir duquel on affiche le paywall « soft »
+/// (nudge non bloquant avec « Continuer mon essai »). 7 → s'affiche à mi-essai.
+const kTrialSoftNudgeDaysLeft = 7;
+
+const _kSoftPaywallSeenPrefix = 'soft_paywall_seen_';
+
+/// Le parent a-t-il déjà vu le paywall « soft » de mi-essai ? (clé par famille)
+/// Renvoie `true` (= ne pas afficher) si aucun utilisateur connecté, par sûreté.
+Future<bool> softPaywallSeen() async {
+  final user = await getCurrentUser();
+  if (user == null) return true;
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool('$_kSoftPaywallSeenPrefix${user.familyId}') ?? false;
+}
+
+/// Marque le paywall « soft » comme vu pour la famille courante.
+Future<void> markSoftPaywallSeen() async {
+  final user = await getCurrentUser();
+  if (user == null) return;
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('$_kSoftPaywallSeenPrefix${user.familyId}', true);
+}
 
 // Clés RevenueCat — https://app.revenuecat.com
 // Android : clé publique SDK du projet Tiipee (goog_...).
@@ -119,7 +147,7 @@ final paywallPricesProvider = FutureProvider<PaywallPrices>((ref) async {
   }
 });
 
-/// Vérifie l'accès côté Supabase : trial 7 jours ou abonnement actif.
+/// Vérifie l'accès côté Supabase : trial (kTrialDays) ou abonnement actif.
 Future<bool> checkTrialAccess() async {
   final user = await getCurrentUser();
   if (user == null) return false;
@@ -133,7 +161,7 @@ Future<bool> checkTrialAccess() async {
   if (data['subscription_status'] == 'active') return true;
   if (data['subscription_status'] == 'trial') {
     final started = DateTime.parse(data['trial_started_at'] as String);
-    return DateTime.now().difference(started).inDays < 7; // trial 7 jours
+    return DateTime.now().difference(started).inDays < kTrialDays;
   }
   return false;
 }
@@ -153,7 +181,7 @@ Future<int> trialDaysLeft() async {
   if (data['subscription_status'] == 'trial') {
     final started = DateTime.parse(data['trial_started_at'] as String);
     final elapsed = DateTime.now().difference(started).inDays;
-    return (7 - elapsed).clamp(0, 7);
+    return (kTrialDays - elapsed).clamp(0, kTrialDays);
   }
   return 0;
 }

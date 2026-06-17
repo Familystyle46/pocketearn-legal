@@ -8,7 +8,13 @@ import 'revenue_cat_service.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
   final bool isDismissible;
-  const PaywallScreen({super.key, this.isDismissible = true});
+  /// Paywall « soft » de mi-essai : non bloquant, propose « Continuer mon essai ».
+  final bool isSoftTrial;
+  const PaywallScreen({
+    super.key,
+    this.isDismissible = true,
+    this.isSoftTrial = false,
+  });
 
   @override
   ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
@@ -23,6 +29,19 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     super.initState();
     // Analytics : vue paywall (en distinguant le paywall bloquant du soft).
     Analytics.paywallViewed(required: !widget.isDismissible);
+    // Paywall soft : on le marque "vu" dès l'affichage → garantit qu'il ne
+    // réapparaît pas en boucle, même si le parent ferme l'app sans choisir.
+    if (widget.isSoftTrial) markSoftPaywallSeen();
+  }
+
+  /// Ferme le paywall soft (« Continuer mon essai » ou croix) en restant dans
+  /// l'app. Le flag "vu" est déjà posé en initState.
+  void _continueTrial() {
+    if (widget.isDismissible) {
+      context.pop();
+    } else {
+      context.go('/parent');
+    }
   }
 
   @override
@@ -136,7 +155,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '7 jours gratuits',
+                            '14 jours gratuits',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF2E7D32),
@@ -185,6 +204,29 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         ),
                       ),
               ),
+
+              // ── CONTINUER MON ESSAI (paywall soft de mi-essai) ──
+              if (widget.isSoftTrial) ...[
+                const SizedBox(height: 12),
+                OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
+                    side: const BorderSide(color: Color(0xFF2E7D32)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: _loading ? null : _continueTrial,
+                  child: const Text(
+                    'Continuer mon essai gratuit',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2E7D32),
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 12),
 

@@ -112,7 +112,7 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
 
               const SizedBox(height: 6),
               const Text(
-                '7 jours gratuits — sans carte bancaire',
+                '14 jours gratuits — sans carte bancaire',
                 style: TextStyle(color: AppColors.emerald, fontSize: 14),
               ).animate().fadeIn(delay: 100.ms),
 

@@ -42,7 +42,7 @@ export function welcomeParentHtml(name: string) {
       et configurer ses règles de récompense.
     </p>
     <p style="${pStyle}">
-      Votre <strong>essai gratuit de 7 jours</strong> commence maintenant — aucune carte requise.
+      Votre <strong>essai gratuit de 14 jours</strong> commence maintenant — aucune carte requise.
     </p>
     <p style="${mutedStyle}">— L'équipe Tiipee</p>
   </div>`
