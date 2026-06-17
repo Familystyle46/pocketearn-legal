@@ -148,21 +148,21 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 ),
                 child: const Row(
                   children: [
-                    Text('🎁', style: TextStyle(fontSize: 24)),
+                    Text('✨', style: TextStyle(fontSize: 24)),
                     SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '14 jours gratuits',
+                            'Votre enfant vous remerciera plus tard',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: Color(0xFF2E7D32),
                             ),
                           ),
                           Text(
-                            'Aucun débit avant la fin de l\'essai.\nAnnulez à tout moment.',
+                            'Moins d\'écran, plus de vie. Sans engagement, annulez à tout moment.',
                             style: TextStyle(
                               fontSize: 12,
                               color: Color(0xFF388E3C),
@@ -197,7 +197,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         ),
                       )
                     : Text(
-                        'Commencer l\'essai gratuit',
+                        'Passer en Premium',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
