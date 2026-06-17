@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/analytics/analytics_service.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../core/notifications/notification_service.dart';
 import '../../subscription/revenue_cat_service.dart';
@@ -40,6 +41,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         } catch (_) {}
         saveFCMToken(response.user!.id);
         final user = await getCurrentUser();
+        Analytics.setUser(id: response.user!.id, role: user?.role.name);
+        Analytics.login('email');
         if (!mounted) return;
         context.go(user?.role.name == 'child' ? '/child' : '/parent');
       }

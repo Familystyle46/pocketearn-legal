@@ -386,9 +386,24 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
           ),
           child: Scaffold(
             backgroundColor: AppColors.childBg,
-            body: CustomScrollView(
-              slivers: [
-                SliverAppBar(
+            body: RefreshIndicator(
+              color: AppColors.emerald,
+              backgroundColor: AppColors.childSurface,
+              onRefresh: () async {
+                // Balayer vers le bas → recharge gains, config et versements.
+                ref.invalidate(_weeklyBonusProvider(user.id));
+                ref.invalidate(_todayBonusProvider(user.id));
+                ref.invalidate(_streakChildProvider(user.id));
+                ref.invalidate(_totalSessionsProvider(user.id));
+                ref.invalidate(_weeklyPaidOutChildProvider(user.id));
+                ref.invalidate(_hasPendingPayoutProvider(user.id));
+                ref.invalidate(configProvider(user.id));
+                await ref.read(_weeklyBonusProvider(user.id).future);
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  SliverAppBar(
                   backgroundColor: AppColors.childBg,
                   expandedHeight: 0,
                   floating: true,
@@ -591,7 +606,8 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                     ]),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         );

@@ -80,9 +80,23 @@ class ChildDetailScreen extends ConsumerWidget {
                   child: Text('Enfant introuvable',
                       style: TextStyle(color: AppColors.textMuted)));
             }
-            return CustomScrollView(
-              slivers: [
-                _Header(child: child, childId: childId),
+            return RefreshIndicator(
+              color: AppColors.emerald,
+              backgroundColor: AppColors.parentDarkCard,
+              onRefresh: () async {
+                // Balayer vers le bas → recharge gains, config et versements.
+                ref.invalidate(_weeklyStatsProvider(childId));
+                ref.invalidate(configProvider(childId));
+                ref.invalidate(_weeklyPaidOutProvider(childId));
+                ref.invalidate(_streakProvider(childId));
+                ref.invalidate(_screenTimeProvider(childId));
+                ref.invalidate(childWeeklySummaryProvider(childId));
+                await ref.read(_weeklyStatsProvider(childId).future);
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                slivers: [
+                  _Header(child: child, childId: childId),
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
                   sliver: SliverList(
@@ -123,7 +137,8 @@ class ChildDetailScreen extends ConsumerWidget {
                     ]),
                   ),
                 ),
-              ],
+                ],
+              ),
             );
           },
           loading: () => const Center(

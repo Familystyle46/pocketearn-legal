@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/analytics/analytics_service.dart';
 
 import '../../features/auth/presentation/onboarding_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -26,6 +27,7 @@ import '../../features/subscription/revenue_cat_service.dart'
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
+    observers: [Analytics.observer],
     routes: [
       GoRoute(
         path: '/splash',

@@ -5,6 +5,7 @@ import '../../../core/supabase/supabase_service.dart'
     show joinFamilyByCode, activateChild;
 import '../../../shared/widgets/app_button.dart';
 import '../../../shared/widgets/app_text_field.dart';
+import '../../../core/analytics/analytics_service.dart';
 
 class JoinFamilyScreen extends ConsumerStatefulWidget {
   const JoinFamilyScreen({super.key});
@@ -32,6 +33,10 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
       if (user == null) {
         setState(() => _error = 'Code invalide. Demande à ton parent.');
       } else {
+        // Libère le clavier pour réinitialiser l'état CAPS-lock hérité du
+        // champ code (TextCapitalization.characters) avant d'afficher les
+        // champs email / mot de passe — sinon ils démarrent en majuscules.
+        FocusManager.instance.primaryFocus?.unfocus();
         setState(() {
           _codeVerified = true;
           _childName = user.name;
@@ -65,6 +70,7 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
         email: email,
         password: password,
       );
+      Analytics.childJoined();
       if (!mounted) return;
       context.go('/child');
     } catch (e) {
@@ -124,12 +130,15 @@ class _JoinFamilyScreenState extends ConsumerState<JoinFamilyScreen> {
                   controller: _emailCtrl,
                   label: 'Email',
                   keyboardType: TextInputType.emailAddress,
+                  textCapitalization: TextCapitalization.none,
                 ),
                 const SizedBox(height: 16),
                 AppTextField(
                   controller: _passwordCtrl,
                   label: 'Mot de passe',
                   obscureText: true,
+                  keyboardType: TextInputType.visiblePassword,
+                  textCapitalization: TextCapitalization.none,
                 ),
               ],
               if (_error != null) ...[

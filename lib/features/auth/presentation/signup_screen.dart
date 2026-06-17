@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/analytics/analytics_service.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../shared/models/user_model.dart';
 import '../../subscription/revenue_cat_service.dart';
@@ -54,6 +55,10 @@ class _SignupScreenState extends ConsumerState<SignupScreen> {
         try {
           await initRevenueCat(response.user!.id);
         } catch (_) {}
+        // Analytics : inscription parent + démarrage de l'essai.
+        Analytics.setUser(id: response.user!.id, role: 'parent');
+        Analytics.signUp('email');
+        Analytics.trialStarted();
       }
       // Item 1 — email de bienvenue (non bloquant)
       supabase.functions.invoke('send-welcome-email', body: {

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/analytics/analytics_service.dart';
 import 'revenue_cat_service.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,13 @@ class PaywallScreen extends ConsumerStatefulWidget {
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _yearlySelected = true;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Analytics : vue paywall (en distinguant le paywall bloquant du soft).
+    Analytics.paywallViewed(required: !widget.isDismissible);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -213,6 +221,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           _yearlySelected ? await purchaseYearly() : await purchaseMonthly();
       if (mounted) {
         if (success) {
+          Analytics.subscribe(_yearlySelected ? 'yearly' : 'monthly');
           ref.invalidate(subscriptionProvider);
           // Rafraîchit aussi le badge de l'accueil parent (sinon premium
           // invisible jusqu'au redémarrage). RevenueCat est déjà actif ici.
@@ -246,6 +255,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     try {
       await restorePurchases();
       if (mounted) {
+        Analytics.subscribeRestored();
         ref.invalidate(subscriptionProvider);
         ref.invalidate(subscriptionStatusProvider);
         ScaffoldMessenger.of(context).showSnackBar(

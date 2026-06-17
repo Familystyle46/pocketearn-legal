@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../shared/models/user_model.dart';
 import '../../shared/models/configuration_model.dart';
 import '../../shared/models/earning_model.dart';
+import '../analytics/analytics_service.dart';
 import 'supabase_config.dart';
 
 export 'package:supabase_flutter/supabase_flutter.dart' show AuthException;
@@ -35,7 +36,10 @@ Future<AuthResponse> signIn({
   return supabase.auth.signInWithPassword(email: email, password: password);
 }
 
-Future<void> signOut() => supabase.auth.signOut();
+Future<void> signOut() async {
+  Analytics.setUser(id: null);
+  await supabase.auth.signOut();
+}
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
@@ -149,6 +153,7 @@ Future<void> requestPayout({
     'amount_cents': amountCents,
     'status': 'pending',
   });
+  Analytics.payoutRequested(amountCents);
 }
 
 // ── Configuration ─────────────────────────────────────────────────────────────
@@ -240,10 +245,14 @@ Future<List<Payout>> getPendingPayouts(String parentId) async {
 }
 
 Future<void> validatePayout(String payoutId) async {
-  await supabase
+  final rows = await supabase
       .from('payouts')
       .update({'status': 'validated', 'paid_at': DateTime.now().toIso8601String()})
-      .eq('id', payoutId);
+      .eq('id', payoutId)
+      .select('amount_cents');
+  final amount =
+      (rows as List).isNotEmpty ? (rows.first['amount_cents'] as int? ?? 0) : 0;
+  Analytics.payoutValidated(amount);
 }
 
 /// Retourne le total déjà versé à cet enfant depuis le début de la semaine courante.

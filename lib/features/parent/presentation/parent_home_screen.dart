@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/analytics/analytics_service.dart';
 import '../../../core/supabase/supabase_service.dart';
 import '../../../shared/models/user_model.dart';
 import '../../../shared/models/configuration_model.dart';
@@ -63,8 +64,19 @@ class ParentHomeScreen extends ConsumerWidget {
       child: Scaffold(
         backgroundColor: AppColors.parentDarkBg,
         body: SafeArea(
-          child: CustomScrollView(
-            slivers: [
+          child: RefreshIndicator(
+            color: AppColors.emerald,
+            backgroundColor: AppColors.parentDarkCard,
+            onRefresh: () async {
+              // Balayer vers le bas → recharge enfants, gains et abonnement.
+              ref.invalidate(childrenProvider);
+              ref.invalidate(childWeeklySummaryProvider);
+              ref.invalidate(subscriptionStatusProvider);
+              await ref.read(childrenProvider.future);
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
 
               // ── HEADER ─────────────────────────────────────────
               SliverToBoxAdapter(
@@ -269,7 +281,8 @@ class ParentHomeScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-            ],
+              ],
+            ),
           ),
         ),
 
@@ -290,6 +303,7 @@ class ParentHomeScreen extends ConsumerWidget {
     showDialog(
       context: context,
       builder: (_) => _AddChildDialog(onAdded: () {
+        Analytics.childCreated();
         ref.invalidate(childrenProvider);
       }),
     );
