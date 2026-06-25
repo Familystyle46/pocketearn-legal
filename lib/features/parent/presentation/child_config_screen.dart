@@ -25,7 +25,7 @@ class _ChildConfigScreenState extends ConsumerState<ChildConfigScreen> {
   double _startHour       = 16;
   double _endHour         = 22;
   double _dailyTargetHours = 2;
-  int    _paymentDay      = 5; // vendredi par défaut
+  int    _paymentDay      = 7; // dimanche par défaut (réglage masqué en V1)
 
   bool _loading     = false;
   bool _initialized = false;
@@ -141,28 +141,14 @@ class _ChildConfigScreenState extends ConsumerState<ChildConfigScreen> {
                     style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    '${_fmt.format(_baseWeekly)} / semaine',
-                    style: const TextStyle(
-                      color: AppColors.textLight,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: AppColors.emerald,
-                      thumbColor: AppColors.emerald,
-                      inactiveTrackColor: AppColors.parentDarkBorder,
-                      overlayColor: AppColors.emerald.withValues(alpha: 0.1),
-                    ),
-                    child: Slider(
-                      value: _baseWeekly,
-                      min: 0,
-                      max: 100,
-                      divisions: 40,
-                      onChanged: (v) => setState(() => _baseWeekly = v),
-                    ),
+                  _StepperControl(
+                    value: _fmt.format(_baseWeekly),
+                    caption: '/ semaine',
+                    valueColor: AppColors.textLight,
+                    onMinus: () => setState(() =>
+                        _baseWeekly = (_baseWeekly - 1).clamp(0, 100).toDouble()),
+                    onPlus: () => setState(() =>
+                        _baseWeekly = (_baseWeekly + 1).clamp(0, 100).toDouble()),
                   ),
                 ],
               ),
@@ -197,28 +183,14 @@ class _ChildConfigScreenState extends ConsumerState<ChildConfigScreen> {
                     style: TextStyle(color: AppColors.textMuted, fontSize: 12),
                   ),
                   const SizedBox(height: 20),
-                  Text(
-                    'Max ${_fmt.format(_bonusWeekMax)} / semaine',
-                    style: const TextStyle(
-                      color: AppColors.emerald,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      activeTrackColor: AppColors.emerald,
-                      thumbColor: AppColors.emerald,
-                      inactiveTrackColor: AppColors.parentDarkBorder,
-                      overlayColor: AppColors.emerald.withValues(alpha: 0.1),
-                    ),
-                    child: Slider(
-                      value: _bonusWeekMax,
-                      min: 0,
-                      max: 50,
-                      divisions: 100,
-                      onChanged: (v) => setState(() => _bonusWeekMax = v),
-                    ),
+                  _StepperControl(
+                    value: _fmt.format(_bonusWeekMax),
+                    caption: 'max / semaine',
+                    valueColor: AppColors.emerald,
+                    onMinus: () => setState(() =>
+                        _bonusWeekMax = (_bonusWeekMax - 0.5).clamp(0, 50).toDouble()),
+                    onPlus: () => setState(() =>
+                        _bonusWeekMax = (_bonusWeekMax + 0.5).clamp(0, 50).toDouble()),
                   ),
                   // Taux automatique info
                   Container(
@@ -308,74 +280,9 @@ class _ChildConfigScreenState extends ConsumerState<ChildConfigScreen> {
 
             const SizedBox(height: 16),
 
-            // ── JOUR DE PAIEMENT ────────────────────────────────
-            _ConfigCard(
-              color: AppColors.parentDarkCard,
-              borderColor: AppColors.parentDarkBorder,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
-                    children: [
-                      Text('📅', style: TextStyle(fontSize: 18)),
-                      SizedBox(width: 8),
-                      Text(
-                        'Jour de versement',
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Le bouton "Valider" apparaît à partir de ce jour',
-                    style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: List.generate(7, (i) {
-                      final day = i + 1;
-                      final labels = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-                      final selected = _paymentDay == day;
-                      return GestureDetector(
-                        onTap: () => setState(() => _paymentDay = day),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: selected
-                                ? AppColors.emerald
-                                : AppColors.parentDarkBorder,
-                          ),
-                          child: Center(
-                            child: Text(
-                              labels[i],
-                              style: TextStyle(
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.textMuted,
-                                fontWeight: selected
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 16),
+            // ── JOUR DE PAIEMENT : masqué en V1 pour simplifier l'onboarding.
+            // Défaut = dimanche (aligné au récap hebdo). La logique est conservée
+            // (_paymentDay toujours sauvegardé) ; réexposer ce réglage ici en v1.1.
 
             // ── PARAMÈTRES AVANCÉS (accordéon) ──────────────────
             _AdvancedSection(
@@ -545,6 +452,75 @@ class _AdvancedSection extends StatelessWidget {
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
+
+/// Contrôle tactile − valeur + (remplace les sliders). Purement visuel : les
+/// callbacks ajustent l'état exactement comme avant.
+class _StepperControl extends StatelessWidget {
+  final String value;
+  final String caption;
+  final Color valueColor;
+  final VoidCallback onMinus;
+  final VoidCallback onPlus;
+
+  const _StepperControl({
+    required this.value,
+    required this.caption,
+    required this.valueColor,
+    required this.onMinus,
+    required this.onPlus,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        _RoundStepBtn(icon: Icons.remove, onTap: onMinus),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              value,
+              style: TextStyle(
+                color: valueColor,
+                fontSize: 30,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            Text(
+              caption,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 11),
+            ),
+          ],
+        ),
+        _RoundStepBtn(icon: Icons.add, onTap: onPlus),
+      ],
+    );
+  }
+}
+
+class _RoundStepBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _RoundStepBtn({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.parentDarkBg,
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Icon(icon, color: AppColors.emerald, size: 24),
+        ),
+      ),
+    );
+  }
+}
 
 class _ConfigCard extends StatelessWidget {
   final Color color;

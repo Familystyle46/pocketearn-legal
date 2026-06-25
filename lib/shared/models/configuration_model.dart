@@ -8,7 +8,7 @@ class ChildConfiguration {
   final int activeHoursStart;
   final int activeHoursEnd;
   final int dailyTargetMinutes;
-  final int paymentDay;           // 1=Lun … 7=Dim — jour à partir duquel le bouton versement apparaît
+  final int paymentDay;           // 1=Lun … 7=Dim — jour à partir duquel le bouton versement apparaît (défaut 7=dim, réglage masqué en V1)
 
   const ChildConfiguration({
     required this.id,
@@ -20,7 +20,7 @@ class ChildConfiguration {
     required this.activeHoursStart,
     required this.activeHoursEnd,
     required this.dailyTargetMinutes,
-    this.paymentDay = 5, // vendredi par défaut
+    this.paymentDay = 7, // dimanche par défaut (réglage masqué en V1)
   });
 
   double get baseWeeklyEuros => baseWeeklyCents / 100;
@@ -60,7 +60,7 @@ class ChildConfiguration {
         activeHoursStart: json['active_hours_start'] as int,
         activeHoursEnd: json['active_hours_end'] as int,
         dailyTargetMinutes: json['daily_target_minutes'] as int,
-        paymentDay: json['payment_day'] as int? ?? 5,
+        paymentDay: json['payment_day'] as int? ?? 7,
       );
 
   Map<String, dynamic> toJson() => {

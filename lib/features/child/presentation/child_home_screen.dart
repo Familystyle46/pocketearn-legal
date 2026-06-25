@@ -721,9 +721,13 @@ class _BalanceHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseWeekly  = configAsync.when(
         data: (c) => c?.baseWeeklyCents ?? 0, loading: () => 0, error: (_, __) => 0);
+    final bonusMax    = configAsync.when(
+        data: (c) => c?.bonusWeeklyMaxCents ?? 0, loading: () => 0, error: (_, __) => 0);
     final bonusEarned = weeklyBonusAsync.when(
         data: (c) => c, loading: () => 0, error: (_, __) => 0);
     final total = baseWeekly + bonusEarned + (isActive ? sessionBonusCents : 0);
+    final cap   = baseWeekly + bonusMax;
+    final progress = cap > 0 ? (total / cap).clamp(0.0, 1.0) : 0.0;
 
     return Container(
       width: double.infinity,
@@ -740,51 +744,65 @@ class _BalanceHero extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Cette semaine',
-              style: TextStyle(color: Colors.white60, fontSize: 13)),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                fmt.format(total / 100),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 44,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
+          SizedBox(
+            width: 210,
+            height: 210,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(210, 210),
+                  painter: _GaugePainter(progress: progress),
                 ),
-              ).animate(key: ValueKey(total)).scale(
-                    duration: 300.ms,
-                    curve: Curves.elasticOut,
-                    begin: const Offset(0.95, 0.95),
-                    end: const Offset(1, 1),
-                  ),
-              if (isActive && sessionBonusCents > 0) ...[
-                const SizedBox(width: 8),
-                Container(
-                  margin: const EdgeInsets.only(bottom: 6),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '+${fmt.format(sessionBonusCents / 100)}',
-                    style: const TextStyle(
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Cette semaine',
+                        style: TextStyle(color: Colors.white60, fontSize: 13)),
+                    Text(
+                      fmt.format(total / 100),
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
-                  ),
+                        fontSize: 40,
+                        fontWeight: FontWeight.w900,
+                        height: 1.1,
+                      ),
+                    ).animate(key: ValueKey(total)).scale(
+                          duration: 300.ms,
+                          curve: Curves.elasticOut,
+                          begin: const Offset(0.95, 0.95),
+                          end: const Offset(1, 1),
+                        ),
+                    Text('sur ${fmt.format(cap / 100)}',
+                        style: const TextStyle(
+                            color: Colors.white60, fontSize: 12)),
+                    if (isActive && sessionBonusCents > 0) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '+${fmt.format(sessionBonusCents / 100)}',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
-            ],
+            ),
           ),
           const SizedBox(height: 16),
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _BalancePill(label: '🛡️ Socle', value: fmt.format(baseWeekly / 100)),
               const SizedBox(width: 10),
@@ -826,6 +844,40 @@ class _BalancePill extends StatelessWidget {
           style: const TextStyle(color: Colors.white, fontSize: 12)),
     );
   }
+}
+
+/// Jauge circulaire du compteur d'euros (présentation pure) : remplit l'arc
+/// selon `progress` (gains de la semaine / plafond « semaine parfaite »).
+class _GaugePainter extends CustomPainter {
+  final double progress;
+  const _GaugePainter({required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = (size.width / 2) - 9;
+    final track = Paint()
+      ..color = Colors.white.withValues(alpha: 0.18)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.round;
+    final prog = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 14
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, track);
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -math.pi / 2,
+      2 * math.pi * progress,
+      false,
+      prog,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GaugePainter old) => old.progress != progress;
 }
 
 // ── TIMER CIRCLE ──────────────────────────────────────────────────────────────
