@@ -74,11 +74,17 @@ class MainActivity : FlutterActivity() {
 
     private fun startMonitorService() {
         val intent = Intent(this, ScreenMonitorService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
+        // Android 12+ : startForegroundService() lève
+        // ForegroundServiceStartNotAllowedException si l'app est en arrière-plan.
+        // On protège : si c'est refusé, le service repartira au prochain passage
+        // au premier plan — on ne crashe jamais.
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (e: Exception) { /* démarrage refusé en arrière-plan : ignoré */ }
     }
 
     // ── File de sessions enregistrées par le service natif ─────────────────

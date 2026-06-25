@@ -63,10 +63,23 @@ class ScreenMonitorService : Service() {
         } catch (e: Exception) { /* ignoré : ne jamais crasher le service */ }
     }
 
+    // Évite unregisterReceiver sur un receiver jamais enregistré (si on s'arrête
+    // tôt parce que startForeground a échoué).
+    private var receiverRegistered = false
+
     override fun onCreate() {
         super.onCreate()
         createNotificationChannel()
-        startForeground(NOTIFICATION_ID, buildNotification(screenOff = false))
+        // Android 12+ : démarrer un foreground service depuis l'arrière-plan peut
+        // être interdit (ForegroundServiceStartNotAllowedException) ou échouer. On
+        // protège l'appel : en cas d'échec on s'arrête proprement plutôt que de
+        // laisser le système tuer l'app ("ForegroundServiceDidNotStartInTime").
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification(screenOff = false))
+        } catch (e: Exception) {
+            stopSelf()
+            return
+        }
 
         val filter = IntentFilter().apply {
             addAction(Intent.ACTION_SCREEN_OFF)
@@ -79,13 +92,21 @@ class ScreenMonitorService : Service() {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             registerReceiver(screenReceiver, filter)
         }
+        receiverRegistered = true
     }
 
-    // START_STICKY : Android relance le service s'il est tué
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    // START_NOT_STICKY : on ne laisse PAS Android relancer le service en
+    // arrière-plan (interdit sur Android 12+ → crash). Il repart quand l'app
+    // revient au premier plan (EventChannel / startMonitoring).
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
 
     override fun onDestroy() {
-        unregisterReceiver(screenReceiver)
+        if (receiverRegistered) {
+            try {
+                unregisterReceiver(screenReceiver)
+            } catch (e: Exception) { /* ignoré : ne jamais crasher à l'arrêt */ }
+            receiverRegistered = false
+        }
         super.onDestroy()
     }
 
