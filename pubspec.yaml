@@ -2,7 +2,7 @@ name: tiipee
 description: "Plus tu décroches, plus tu gagnes."
 publish_to: 'none'
 
-version: 1.0.13+21
+version: 1.0.13+22
 
 environment:
   sdk: ^3.12.0
