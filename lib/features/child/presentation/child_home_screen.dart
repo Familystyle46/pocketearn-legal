@@ -89,6 +89,13 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
   // l'extension DeviceActivityMonitor. Indépendant du flux argent.
   bool _iosTrackingActive = false;
 
+  // Diagnostic iOS Family Controls : état détaillé pour le panneau d'activation.
+  // Permet d'afficher où en est le pipeline natif (autorisation / sélection
+  // d'apps / minutes réellement mesurées) et de toujours pouvoir le relancer.
+  bool _iosAuthorized = false;
+  bool _iosHasSelection = false;
+  int _iosTodayMinutes = -1; // -1 = inconnu, 0 = mesuré nul, >0 = mesuré
+
   late AnimationController _pulseController;
   late AnimationController _ringController;
 
@@ -194,14 +201,35 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
       final granted = await ScreenTimeService.hasPermission();
       final hasSelection = await ScreenTimeService.hasAppSelection();
       final active = granted && hasSelection;
-      if (mounted && active != _iosTrackingActive) {
-        setState(() => _iosTrackingActive = active);
+      // État détaillé (toujours rafraîchi, même si le suivi n'est pas complet)
+      // pour piloter le panneau d'activation / diagnostic.
+      if (mounted &&
+          (active != _iosTrackingActive ||
+              granted != _iosAuthorized ||
+              hasSelection != _iosHasSelection)) {
+        setState(() {
+          _iosTrackingActive = active;
+          _iosAuthorized = granted;
+          _iosHasSelection = hasSelection;
+        });
       }
       if (!active || _userId == null) return;
       // Idempotent : garantit que le monitoring tourne (relancé au démarrage).
       await ScreenTimeService.startScreenTimeMonitoring();
       final days = await ScreenTimeService.getDailyScreenOnMinutes(days: 7);
       if (days.isEmpty) return;
+      // Diagnostic : minutes réellement mesurées aujourd'hui par l'extension.
+      // Si cela reste à 0 alors que l'écran a été utilisé, c'est que le pipeline
+      // natif (extension/App Group) ne remonte rien.
+      final todayK = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      final todayMin = (days.firstWhere(
+            (d) => d['day'] == todayK,
+            orElse: () => const <String, dynamic>{'minutes': 0},
+          )['minutes'] as int?) ??
+          0;
+      if (mounted && todayMin != _iosTodayMinutes) {
+        setState(() => _iosTodayMinutes = todayMin);
+      }
       // Carte « temps d'écran » du parent (usage journalier complet).
       await upsertScreenTime(_userId!, days);
 
@@ -437,6 +465,27 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                       ),
                       const SizedBox(height: 28),
 
+                      // iOS : panneau d'activation + diagnostic du suivi Screen
+                      // Time (Family Controls). Visible et actionnable tant que
+                      // le suivi ne remonte pas de minutes — impossible à manquer
+                      // et toujours re-déclenchable (sortie de l'état bloqué).
+                      // Android : jamais affiché (détection native automatique).
+                      if (Platform.isIOS &&
+                          (!_iosAuthorized ||
+                              !_iosHasSelection ||
+                              _iosTodayMinutes <= 0)) ...[
+                        _ScreenTimePanelIOS(
+                          authorized: _iosAuthorized,
+                          hasSelection: _iosHasSelection,
+                          todayMinutes: _iosTodayMinutes,
+                          onActivate: () async {
+                            await _activateIOSTracking();
+                            await _refreshScreenTimeIOS();
+                          },
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
                       _TimerCircle(
                         isActive: _sessionActive,
                         seconds: _sessionSeconds,
@@ -487,12 +536,6 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                                 .requestIgnoreBatteryOptimizations();
                           },
                         ),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // iOS : activation du suivi Screen Time (Family Controls).
-                      if (Platform.isIOS && !_iosTrackingActive) ...[
-                        _ScreenTimeOptIn(onActivate: _activateIOSTracking),
                         const SizedBox(height: 16),
                       ],
 
@@ -1511,57 +1554,150 @@ class _GuideStep extends StatelessWidget {
   }
 }
 
-class _ScreenTimeOptIn extends StatelessWidget {
+/// iOS : panneau d'activation + diagnostic du suivi Screen Time (Family
+/// Controls). Affiche l'état réel du pipeline natif et reste toujours
+/// re-déclenchable pour sortir d'un état bloqué (autorisé mais sans données).
+class _ScreenTimePanelIOS extends StatelessWidget {
+  final bool authorized;
+  final bool hasSelection;
+  final int todayMinutes; // -1 = inconnu
   final Future<void> Function() onActivate;
 
-  const _ScreenTimeOptIn({required this.onActivate});
+  const _ScreenTimePanelIOS({
+    required this.authorized,
+    required this.hasSelection,
+    required this.todayMinutes,
+    required this.onActivate,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final bool fullyActive = authorized && hasSelection;
+    final String cta = !authorized
+        ? 'Activer le suivi'
+        : (!hasSelection ? 'Choisir les apps à suivre' : 'Gérer les apps suivies');
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.childCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.childBorder),
-      ),
-      child: Row(
-        children: [
-          const Text('📊', style: TextStyle(fontSize: 22)),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Suivi du temps d\'écran',
-                  style: TextStyle(
-                    color: AppColors.textLight,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Active-le pour partager ton temps d\'écran avec tes parents.',
-                  style: TextStyle(color: AppColors.textMuted, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          TextButton(
-            onPressed: onActivate,
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.emerald,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            child: const Text('Activer',
-                style: TextStyle(fontWeight: FontWeight.bold)),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.emerald.withValues(alpha: 0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.emerald.withValues(alpha: 0.12),
+            blurRadius: 18,
+            spreadRadius: 1,
           ),
         ],
       ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.shield_moon_outlined,
+                  color: AppColors.emerald, size: 24),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Active tes gains automatiques',
+                  style: TextStyle(
+                    color: AppColors.textLight,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Sur iPhone, tes gains sont calculés automatiquement à partir de '
+            'ton temps d\'écran. Active le suivi pour commencer à gagner, '
+            'même téléphone posé.',
+            style: TextStyle(color: AppColors.textMuted, fontSize: 13, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+
+          // État réel du pipeline (diagnostic + transparence).
+          _StatusRow(ok: authorized, label: 'Autorisation Temps d\'écran'),
+          const SizedBox(height: 6),
+          _StatusRow(ok: hasSelection, label: 'Apps à suivre sélectionnées'),
+          const SizedBox(height: 6),
+          _StatusRow(
+            ok: todayMinutes > 0,
+            label: todayMinutes < 0
+                ? 'Minutes mesurées aujourd\'hui : —'
+                : 'Minutes mesurées aujourd\'hui : $todayMinutes',
+          ),
+
+          if (fullyActive && todayMinutes <= 0) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.childBg,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Le suivi est activé mais ne mesure encore rien. Utilise une '
+                'app suivie quelques minutes, puis reviens : si le compteur '
+                'reste à 0, préviens un parent.',
+                style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.35),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onActivate,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.emerald,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: Text(cta,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 15)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatusRow extends StatelessWidget {
+  final bool ok;
+  final String label;
+  const _StatusRow({required this.ok, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          ok ? Icons.check_circle : Icons.radio_button_unchecked,
+          color: ok ? AppColors.emerald : AppColors.textMuted,
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: ok ? AppColors.textLight : AppColors.textMuted,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
