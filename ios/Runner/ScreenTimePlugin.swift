@@ -155,42 +155,58 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
         guard let root = Self.topViewController() else {
           result(false); return
         }
-        // Recharge la sélection existante pour la pré-cocher. `includeEntireCategory`
-        // = sélectionner une catégorie inclut implicitement toutes ses apps.
-        var initial = FamilyActivitySelection(includeEntireCategory: true)
-        if let saved = self.loadSelection() {
-          initial = saved
+        // Recharge la sélection existante pour la pré-cocher.
+        let initial = self.loadSelection() ?? FamilyActivitySelection()
+
+        var responded = false
+        func respondOnce(_ value: Int) {
+          if responded { return }
+          responded = true
+          result(value)
         }
-        let view = TiipeePickerView(initial: initial) { selection in
-          root.dismiss(animated: true)
-          let count = selection.applicationTokens.count
-            + selection.categoryTokens.count
-            + selection.webDomainTokens.count
-          // ⚠️ La case « Toutes les apps et catégories » du haut ne renvoie
-          // AUCUN jeton (Apple n'expose pas de jeton « tout »). On refuse alors
-          // d'enregistrer une sélection vide et on n'écrase pas une sélection
-          // valide précédente → l'app affiche le diagnostic et guide l'enfant.
-          if count == 0 {
-            self.defaults?.set(
-              "Sélection vide : ne coche pas « Toutes les apps » tout en haut, "
-                + "choisis les catégories une par une.",
-              forKey: "lastError")
-            result(-2)
-            return
+
+        let view = TiipeePickerView(
+          initial: initial,
+          // Sauvegarde À CHAQUE changement (et pas seulement au bouton) : on ne
+          // perd jamais la sélection, quelle que soit la façon dont le picker
+          // se ferme. On n'enregistre que si des jetons réels sont présents
+          // (la case « Toutes les apps » du haut n'en renvoie aucun).
+          onChange: { selection in
+            let count = selection.applicationTokens.count
+              + selection.categoryTokens.count
+              + selection.webDomainTokens.count
+            if count > 0, let encoded = try? JSONEncoder().encode(selection) {
+              self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
+              self.defaults?.removeObject(forKey: "lastError")
+            }
+          },
+          onClose: { selection in
+            root.dismiss(animated: true)
+            // Persiste la sélection finale (autoritaire) si elle a des jetons,
+            // sans dépendre de l'ordre des onChange SwiftUI.
+            let count = selection.applicationTokens.count
+              + selection.categoryTokens.count
+              + selection.webDomainTokens.count
+            if count > 0, let encoded = try? JSONEncoder().encode(selection) {
+              self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
+              self.defaults?.removeObject(forKey: "lastError")
+            }
+            if self.hasValidSelection() {
+              _ = self.startMonitoring(forceRestart: true)
+              respondOnce(1)
+            } else {
+              self.defaults?.set(
+                "Sélection vide : ne coche pas « Toutes les apps » tout en haut, "
+                  + "choisis les catégories une par une.",
+                forKey: "lastError")
+              respondOnce(-2)
+            }
           }
-          if let encoded = try? JSONEncoder().encode(selection) {
-            self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
-          }
-          self.defaults?.removeObject(forKey: "lastError")
-          // Nouvelle sélection → on force le redémarrage du monitoring.
-          _ = self.startMonitoring(forceRestart: true)
-          result(count)
-        } onCancel: {
-          root.dismiss(animated: true)
-          result(-1)
-        }
+        )
         let host = UIHostingController(rootView: view)
-        root.present(host, animated: true)
+        host.modalPresentationStyle = .overFullScreen
+        host.view.backgroundColor = .clear
+        root.present(host, animated: false)
       }
       return
     }
@@ -354,31 +370,32 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
 @available(iOS 16.0, *)
 private struct TiipeePickerView: View {
   @State private var selection: FamilyActivitySelection
-  let onDone: (FamilyActivitySelection) -> Void
-  let onCancel: () -> Void
+  @State private var isPresented = false
+  let onChange: (FamilyActivitySelection) -> Void
+  let onClose: (FamilyActivitySelection) -> Void
 
   init(initial: FamilyActivitySelection,
-       onDone: @escaping (FamilyActivitySelection) -> Void,
-       onCancel: @escaping () -> Void) {
+       onChange: @escaping (FamilyActivitySelection) -> Void,
+       onClose: @escaping (FamilyActivitySelection) -> Void) {
     _selection = State(initialValue: initial)
-    self.onDone = onDone
-    self.onCancel = onCancel
+    self.onChange = onChange
+    self.onClose = onClose
   }
 
+  // Présentation via le MODIFIER officiel `.familyActivityPicker` (fiable pour
+  // remonter la sélection), au lieu d'instancier `FamilyActivityPicker` à la
+  // main (binding parfois non propagé en présentation impérative). La sélection
+  // est persistée à chaque changement via `onChange`.
   var body: some View {
-    NavigationView {
-      FamilyActivityPicker(selection: $selection)
-        .navigationTitle("Apps à suivre")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-          ToolbarItem(placement: .cancellationAction) {
-            Button("Annuler") { onCancel() }
-          }
-          ToolbarItem(placement: .confirmationAction) {
-            Button("Terminé") { onDone(selection) }
-          }
-        }
-    }
+    Color.clear
+      .familyActivityPicker(isPresented: $isPresented, selection: $selection)
+      .onAppear { isPresented = true }
+      .onChange(of: selection) { newValue in
+        onChange(newValue)
+      }
+      .onChange(of: isPresented) { presented in
+        if !presented { onClose(selection) }
+      }
   }
 }
 #endif
