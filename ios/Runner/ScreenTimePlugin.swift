@@ -23,10 +23,15 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
   static let selectionKey = "familySelection"
   static let activityName = "tiipee.daily"
 
-  /// Pas (en minutes) entre deux seuils, et plafond de mesure.
-  /// 5 min × 144 = 12 h couvertes. Ajustable après tests sur device.
-  static let thresholdStep = 5
-  static let thresholdMaxMinutes = 12 * 60
+  /// Seuils d'usage (minutes) surveillés. UN `DeviceActivityEvent` par seuil,
+  /// et iOS limite fortement le nombre d'événements par activité (les grandes
+  /// listes font échouer `startMonitoring`). On garde donc une liste courte :
+  /// fine au début (retour rapide pour le test + faible usage), grossière
+  /// ensuite. L'extension écrit le max de seuil atteint → minutes du jour.
+  static let thresholdsMinutes: [Int] = [
+    1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 40, 50, 60,
+    75, 90, 105, 120, 150, 180, 210, 240, 300, 360, 420, 480,
+  ]
 
   private var defaults: UserDefaults? { UserDefaults(suiteName: ScreenTimePlugin.appGroup) }
 
@@ -55,7 +60,7 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
     case "presentAppPicker":
       presentAppPicker(result: result)
     case "hasAppSelection":
-      result(defaults?.data(forKey: ScreenTimePlugin.selectionKey) != nil)
+      result(hasValidSelection())
     case "startMonitoring":
       result(startMonitoring())
     case "stopMonitoring":
@@ -110,6 +115,37 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
     result(false)
   }
 
+  // MARK: - Helpers sélection
+
+  /// Charge la sélection enregistrée (ou nil).
+  #if canImport(FamilyControls)
+  @available(iOS 16.0, *)
+  private func loadSelection() -> FamilyActivitySelection? {
+    guard let data = defaults?.data(forKey: ScreenTimePlugin.selectionKey),
+          let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+    else { return nil }
+    return decoded
+  }
+
+  @available(iOS 16.0, *)
+  private func selectionHasTokens(_ s: FamilyActivitySelection) -> Bool {
+    return !(s.applicationTokens.isEmpty
+      && s.categoryTokens.isEmpty
+      && s.webDomainTokens.isEmpty)
+  }
+  #endif
+
+  /// Vrai seulement si une sélection AVEC jetons existe. La case « Toutes les
+  /// apps » du picker ne renvoie aucun jeton → considérée comme vide.
+  private func hasValidSelection() -> Bool {
+    #if canImport(FamilyControls)
+    if #available(iOS 16.0, *) {
+      if let s = loadSelection() { return selectionHasTokens(s) }
+    }
+    #endif
+    return false
+  }
+
   // MARK: - Sélection des apps à suivre (FamilyActivityPicker)
 
   private func presentAppPicker(result: @escaping FlutterResult) {
@@ -119,22 +155,35 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
         guard let root = Self.topViewController() else {
           result(false); return
         }
-        // Recharge la sélection existante pour la pré-cocher.
-        var initial = FamilyActivitySelection()
-        if let data = self.defaults?.data(forKey: ScreenTimePlugin.selectionKey),
-           let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data) {
-          initial = decoded
+        // Recharge la sélection existante pour la pré-cocher. `includeEntireCategory`
+        // = sélectionner une catégorie inclut implicitement toutes ses apps.
+        var initial = FamilyActivitySelection(includeEntireCategory: true)
+        if let saved = self.loadSelection() {
+          initial = saved
         }
         let view = TiipeePickerView(initial: initial) { selection in
-          if let encoded = try? JSONEncoder().encode(selection) {
-            self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
-          }
           root.dismiss(animated: true)
-          // Nouvelle sélection → on force le redémarrage du monitoring.
-          _ = self.startMonitoring(forceRestart: true)
           let count = selection.applicationTokens.count
             + selection.categoryTokens.count
             + selection.webDomainTokens.count
+          // ⚠️ La case « Toutes les apps et catégories » du haut ne renvoie
+          // AUCUN jeton (Apple n'expose pas de jeton « tout »). On refuse alors
+          // d'enregistrer une sélection vide et on n'écrase pas une sélection
+          // valide précédente → l'app affiche le diagnostic et guide l'enfant.
+          if count == 0 {
+            self.defaults?.set(
+              "Sélection vide : ne coche pas « Toutes les apps » tout en haut, "
+                + "choisis les catégories une par une.",
+              forKey: "lastError")
+            result(-2)
+            return
+          }
+          if let encoded = try? JSONEncoder().encode(selection) {
+            self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
+          }
+          self.defaults?.removeObject(forKey: "lastError")
+          // Nouvelle sélection → on force le redémarrage du monitoring.
+          _ = self.startMonitoring(forceRestart: true)
           result(count)
         } onCancel: {
           root.dismiss(animated: true)
@@ -170,18 +219,16 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
         return true
       }
 
-      guard let data = defaults?.data(forKey: ScreenTimePlugin.selectionKey),
-            let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
-      else {
+      guard let selection = loadSelection() else {
         defaults?.set("startMonitoring: aucune sélection enregistrée", forKey: "lastError")
         return false
       }
 
-      // Aucune cible sélectionnée → rien à mesurer.
-      if selection.applicationTokens.isEmpty
-        && selection.categoryTokens.isEmpty
-        && selection.webDomainTokens.isEmpty {
-        defaults?.set("startMonitoring: sélection vide", forKey: "lastError")
+      // Aucun jeton (ex. case « Toutes les apps ») → rien à mesurer.
+      if !selectionHasTokens(selection) {
+        defaults?.set(
+          "Sélection vide : choisis les catégories une par une (pas la case du haut).",
+          forKey: "lastError")
         return false
       }
 
@@ -192,8 +239,7 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
       )
 
       var events: [DeviceActivityEvent.Name: DeviceActivityEvent] = [:]
-      var m = ScreenTimePlugin.thresholdStep
-      while m <= ScreenTimePlugin.thresholdMaxMinutes {
+      for m in ScreenTimePlugin.thresholdsMinutes {
         let name = DeviceActivityEvent.Name("threshold_\(m)")
         events[name] = DeviceActivityEvent(
           applications: selection.applicationTokens,
@@ -201,7 +247,6 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
           webDomains: selection.webDomainTokens,
           threshold: DateComponents(minute: m)
         )
-        m += ScreenTimePlugin.thresholdStep
       }
 
       center.stopMonitoring([activity])
@@ -250,7 +295,7 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
     return [
       "authorized": authorizationApproved(),
       "authStatus": authStatus,
-      "hasSelection": defaults?.data(forKey: ScreenTimePlugin.selectionKey) != nil,
+      "hasSelection": hasValidSelection(),
       "monitoring": monitoring,
       "todayMinutes": todayMinutes,
       "lastError": defaults?.string(forKey: "lastError") ?? "",

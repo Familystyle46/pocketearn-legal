@@ -1695,6 +1695,22 @@ class _ScreenTimePanelIOS extends StatelessWidget {
             ),
           ],
 
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.emerald.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Text(
+              'Astuce : dans la liste Apple, ne coche PAS « Toutes les apps et '
+              'catégories » tout en haut (Apple n\'enregistre rien dans ce cas). '
+              'Coche plutôt les catégories une par une (Réseaux sociaux, Jeux, '
+              'Divertissement…).',
+              style: TextStyle(color: AppColors.textLight, fontSize: 12, height: 1.35),
+            ),
+          ),
+
           const SizedBox(height: 16),
           SizedBox(
             width: double.infinity,
