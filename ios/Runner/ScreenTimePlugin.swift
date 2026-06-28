@@ -122,7 +122,7 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
   @available(iOS 16.0, *)
   private func loadSelection() -> FamilyActivitySelection? {
     guard let data = defaults?.data(forKey: ScreenTimePlugin.selectionKey),
-          let decoded = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
+          let decoded = try? PropertyListDecoder().decode(FamilyActivitySelection.self, from: data)
     else { return nil }
     return decoded
   }
@@ -175,7 +175,7 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
             let count = selection.applicationTokens.count
               + selection.categoryTokens.count
               + selection.webDomainTokens.count
-            if count > 0, let encoded = try? JSONEncoder().encode(selection) {
+            if count > 0, let encoded = try? PropertyListEncoder().encode(selection) {
               self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
               self.defaults?.removeObject(forKey: "lastError")
             }
@@ -187,7 +187,7 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
             let count = selection.applicationTokens.count
               + selection.categoryTokens.count
               + selection.webDomainTokens.count
-            if count > 0, let encoded = try? JSONEncoder().encode(selection) {
+            if count > 0, let encoded = try? PropertyListEncoder().encode(selection) {
               self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
               self.defaults?.removeObject(forKey: "lastError")
             }
