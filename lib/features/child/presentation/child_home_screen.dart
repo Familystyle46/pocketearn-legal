@@ -95,6 +95,8 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
   bool _iosAuthorized = false;
   bool _iosHasSelection = false;
   int _iosTodayMinutes = -1; // -1 = inconnu, 0 = mesuré nul, >0 = mesuré
+  bool _iosMonitoring = false; // l'extension DeviceActivity tourne-t-elle ?
+  String _iosLastError = ''; // dernière erreur native (diagnostic)
 
   late AnimationController _pulseController;
   late AnimationController _ringController;
@@ -213,6 +215,19 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
           _iosHasSelection = hasSelection;
         });
       }
+
+      // Diagnostic natif (monitoring réellement actif ? dernière erreur ?).
+      final diag = await ScreenTimeService.getIosDiagnostics();
+      final monitoring = diag['monitoring'] == true;
+      final lastError = (diag['lastError'] as String?) ?? '';
+      if (mounted &&
+          (monitoring != _iosMonitoring || lastError != _iosLastError)) {
+        setState(() {
+          _iosMonitoring = monitoring;
+          _iosLastError = lastError;
+        });
+      }
+
       if (!active || _userId == null) return;
       // Idempotent : garantit que le monitoring tourne (relancé au démarrage).
       await ScreenTimeService.startScreenTimeMonitoring();
@@ -478,6 +493,8 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                           authorized: _iosAuthorized,
                           hasSelection: _iosHasSelection,
                           todayMinutes: _iosTodayMinutes,
+                          monitoring: _iosMonitoring,
+                          lastError: _iosLastError,
                           onActivate: () async {
                             await _activateIOSTracking();
                             await _refreshScreenTimeIOS();
@@ -486,28 +503,35 @@ class _ChildHomeScreenState extends ConsumerState<ChildHomeScreen>
                         const SizedBox(height: 24),
                       ],
 
-                      _TimerCircle(
-                        isActive: _sessionActive,
-                        seconds: _sessionSeconds,
-                        bonusCents:
-                            inHours ? _sessionBonusCents(config) : 0,
-                        pulseController: _pulseController,
-                        fmt: fmt,
-                        formatDuration: _formatDuration,
-                        isAutoMode: ScreenTimeService.supportsAutoDetection,
-                        onManualToggle: () => _toggleSession(user.id, config),
-                        onManualStop: _sessionActive
-                            ? () {
-                                _userId = user.id;
-                                _endSession();
-                              }
-                            : null,
-                      ),
-                      if (!inHours && config != null) ...[
-                        const SizedBox(height: 16),
-                        _OutOfHoursBanner(config: config),
+                      // Chrono : Android uniquement (mesure native écran éteint).
+                      // Sur iOS, les gains viennent du suivi Family Controls
+                      // (automatique, non contournable) — le chrono manuel est
+                      // retiré car il comptait de l'argent app ouverte / était
+                      // contournable / risquait le double comptage.
+                      if (!Platform.isIOS) ...[
+                        _TimerCircle(
+                          isActive: _sessionActive,
+                          seconds: _sessionSeconds,
+                          bonusCents:
+                              inHours ? _sessionBonusCents(config) : 0,
+                          pulseController: _pulseController,
+                          fmt: fmt,
+                          formatDuration: _formatDuration,
+                          isAutoMode: ScreenTimeService.supportsAutoDetection,
+                          onManualToggle: () => _toggleSession(user.id, config),
+                          onManualStop: _sessionActive
+                              ? () {
+                                  _userId = user.id;
+                                  _endSession();
+                                }
+                              : null,
+                        ),
+                        if (!inHours && config != null) ...[
+                          const SizedBox(height: 16),
+                          _OutOfHoursBanner(config: config),
+                        ],
+                        const SizedBox(height: 24),
                       ],
-                      const SizedBox(height: 24),
 
                       _DailyChallenge(
                         todayBonusAsync: todayBonusAsync,
@@ -1561,12 +1585,16 @@ class _ScreenTimePanelIOS extends StatelessWidget {
   final bool authorized;
   final bool hasSelection;
   final int todayMinutes; // -1 = inconnu
+  final bool monitoring;
+  final String lastError;
   final Future<void> Function() onActivate;
 
   const _ScreenTimePanelIOS({
     required this.authorized,
     required this.hasSelection,
     required this.todayMinutes,
+    required this.monitoring,
+    required this.lastError,
     required this.onActivate,
   });
 
@@ -1625,6 +1653,8 @@ class _ScreenTimePanelIOS extends StatelessWidget {
           const SizedBox(height: 6),
           _StatusRow(ok: hasSelection, label: 'Apps à suivre sélectionnées'),
           const SizedBox(height: 6),
+          _StatusRow(ok: monitoring, label: 'Suivi en cours (monitoring actif)'),
+          const SizedBox(height: 6),
           _StatusRow(
             ok: todayMinutes > 0,
             label: todayMinutes < 0
@@ -1632,7 +1662,22 @@ class _ScreenTimePanelIOS extends StatelessWidget {
                 : 'Minutes mesurées aujourd\'hui : $todayMinutes',
           ),
 
-          if (fullyActive && todayMinutes <= 0) ...[
+          if (lastError.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.red.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Diagnostic : $lastError',
+                style: const TextStyle(color: Color(0xFFE57373), fontSize: 11.5, height: 1.3),
+              ),
+            ),
+          ],
+
+          if (fullyActive && todayMinutes <= 0 && lastError.isEmpty) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.all(10),
@@ -1641,9 +1686,10 @@ class _ScreenTimePanelIOS extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                'Le suivi est activé mais ne mesure encore rien. Utilise une '
-                'app suivie quelques minutes, puis reviens : si le compteur '
-                'reste à 0, préviens un parent.',
+                'Le suivi est activé. La mesure n\'est pas instantanée (Apple la '
+                'remonte avec un délai) : utilise une app suivie un moment, '
+                'verrouille, puis reviens plus tard. Inutile de rouvrir Tiipee '
+                'sans arrêt, ça ne réinitialise plus le compteur.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 12, height: 1.35),
               ),
             ),

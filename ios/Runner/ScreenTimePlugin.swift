@@ -61,6 +61,8 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
     case "stopMonitoring":
       stopMonitoring()
       result(nil)
+    case "getDiagnostics":
+      result(diagnostics())
 
     // Méthodes Android sans équivalent iOS pertinent → réponses neutres,
     // pour que la couche Dart reste agnostique de la plateforme.
@@ -128,8 +130,8 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
             self.defaults?.set(encoded, forKey: ScreenTimePlugin.selectionKey)
           }
           root.dismiss(animated: true)
-          // Redémarre le monitoring avec la nouvelle sélection.
-          _ = self.startMonitoring()
+          // Nouvelle sélection → on force le redémarrage du monitoring.
+          _ = self.startMonitoring(forceRestart: true)
           let count = selection.applicationTokens.count
             + selection.categoryTokens.count
             + selection.webDomainTokens.count
@@ -149,17 +151,37 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
 
   // MARK: - Monitoring Screen Time (seuils)
 
-  private func startMonitoring() -> Bool {
+  /// Démarre le monitoring. IDEMPOTENT par défaut : si l'activité tourne déjà,
+  /// on ne fait RIEN (sinon `stopMonitoring`+`startMonitoring` relancent
+  /// l'intervalle → `intervalDidStart` remet les minutes du jour à 0 et le
+  /// comptage des seuils repart de zéro). Comme `startMonitoring` est appelé à
+  /// chaque ouverture de l'app, sans cette garde le simple fait d'ouvrir Tiipee
+  /// effaçait la mesure. On ne force le redémarrage (`forceRestart`) que lorsque
+  /// l'utilisateur choisit une nouvelle sélection d'apps.
+  private func startMonitoring(forceRestart: Bool = false) -> Bool {
     #if canImport(FamilyControls)
     if #available(iOS 16.0, *) {
+      let center = DeviceActivityCenter()
+      let activity = DeviceActivityName(ScreenTimePlugin.activityName)
+
+      // Déjà en cours et pas de nouvelle sélection → ne rien réinitialiser.
+      if !forceRestart && center.activities.contains(activity) {
+        defaults?.removeObject(forKey: "lastError")
+        return true
+      }
+
       guard let data = defaults?.data(forKey: ScreenTimePlugin.selectionKey),
             let selection = try? JSONDecoder().decode(FamilyActivitySelection.self, from: data)
-      else { return false }
+      else {
+        defaults?.set("startMonitoring: aucune sélection enregistrée", forKey: "lastError")
+        return false
+      }
 
       // Aucune cible sélectionnée → rien à mesurer.
       if selection.applicationTokens.isEmpty
         && selection.categoryTokens.isEmpty
         && selection.webDomainTokens.isEmpty {
+        defaults?.set("startMonitoring: sélection vide", forKey: "lastError")
         return false
       }
 
@@ -182,13 +204,14 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
         m += ScreenTimePlugin.thresholdStep
       }
 
-      let center = DeviceActivityCenter()
-      let activity = DeviceActivityName(ScreenTimePlugin.activityName)
       center.stopMonitoring([activity])
       do {
         try center.startMonitoring(activity, during: schedule, events: events)
+        defaults?.removeObject(forKey: "lastError")
         return true
       } catch {
+        // Surfacé dans le panneau de diagnostic côté app.
+        defaults?.set("startMonitoring: \(error)", forKey: "lastError")
         return false
       }
     }
@@ -202,6 +225,44 @@ public class ScreenTimePlugin: NSObject, FlutterPlugin {
       DeviceActivityCenter().stopMonitoring([DeviceActivityName(ScreenTimePlugin.activityName)])
     }
     #endif
+  }
+
+  // MARK: - Diagnostic (panneau côté app)
+
+  /// Renvoie l'état réel du pipeline Family Controls pour affichage/diagnostic.
+  /// { authorized, authStatus, hasSelection, monitoring, todayMinutes, lastError }
+  private func diagnostics() -> [String: Any] {
+    var monitoring = false
+    var authStatus = "unavailable"
+    #if canImport(FamilyControls)
+    if #available(iOS 16.0, *) {
+      monitoring = DeviceActivityCenter().activities
+        .contains(DeviceActivityName(ScreenTimePlugin.activityName))
+      switch AuthorizationCenter.shared.authorizationStatus {
+      case .approved:      authStatus = "approved"
+      case .denied:        authStatus = "denied"
+      case .notDetermined: authStatus = "notDetermined"
+      @unknown default:    authStatus = "unknown"
+      }
+    }
+    #endif
+    let todayMinutes = defaults?.integer(forKey: todayMinutesKey()) ?? 0
+    return [
+      "authorized": authorizationApproved(),
+      "authStatus": authStatus,
+      "hasSelection": defaults?.data(forKey: ScreenTimePlugin.selectionKey) != nil,
+      "monitoring": monitoring,
+      "todayMinutes": todayMinutes,
+      "lastError": defaults?.string(forKey: "lastError") ?? "",
+    ]
+  }
+
+  /// Clé "minutes_yyyy-MM-dd" du jour courant (identique à l'extension).
+  private func todayMinutesKey() -> String {
+    let fmt = DateFormatter()
+    fmt.locale = Locale(identifier: "en_US_POSIX")
+    fmt.dateFormat = "yyyy-MM-dd"
+    return "minutes_\(fmt.string(from: Date()))"
   }
 
   // MARK: - Minutes d'écran par jour

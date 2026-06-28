@@ -70,6 +70,20 @@ class ScreenTimeService {
     if (Platform.isIOS) await _channel.invokeMethod('stopMonitoring');
   }
 
+  /// Diagnostic du pipeline Family Controls (iOS only). Renvoie un map :
+  /// { authorized, authStatus, hasSelection, monitoring, todayMinutes, lastError }.
+  /// Sert au panneau d'activation/diagnostic côté enfant. Jamais bloquant.
+  static Future<Map<String, dynamic>> getIosDiagnostics() async {
+    if (!Platform.isIOS) return const {};
+    try {
+      final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('getDiagnostics');
+      if (raw == null) return const {};
+      return Map<String, dynamic>.from(raw);
+    } catch (_) {
+      return const {};
+    }
+  }
+
   // ── Optimisation batterie (Android) ───────────────────────────
   // Indispensable pour que le service survive en arrière-plan sur MIUI/Oppo.
 
