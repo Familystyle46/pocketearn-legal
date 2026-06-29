@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tiipee — Plus tu décroches, plus tu gagnes.</title>
   <meta name="description" content="Tiipee récompense les enfants qui réduisent leur temps d'écran. Le parent fixe les règles, l'enfant gagne son argent de poche en posant son téléphone.">
+  <link rel="alternate" hreflang="fr" href="https://tiipee.com/?lang=fr">
+  <link rel="alternate" hreflang="en" href="https://tiipee.com/?lang=en">
+  <link rel="alternate" hreflang="x-default" href="https://tiipee.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://tiipee.com/">
+  <meta property="og:title" content="Tiipee — Plus tu décroches, plus tu gagnes.">
+  <meta property="og:description" content="Le temps loin des écrans transformé en argent de poche. Le parent fixe les règles, l'enfant gagne en posant son téléphone.">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale:alternate" content="en_US">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%2300C853'/%3E%3Ccircle cx='38' cy='32' r='6' fill='white'/%3E%3Crect x='32' y='42' width='12' height='38' rx='6' fill='white'/%3E%3Ccircle cx='62' cy='32' r='6' fill='white'/%3E%3Crect x='56' y='42' width='12' height='38' rx='6' fill='white'/%3E%3C/svg%3E">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -18,8 +27,13 @@
     nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0}
     nav .logo{display:flex;align-items:center;gap:10px;font-size:22px}
     nav .logo .mark{width:34px;height:34px;border-radius:9px;background:var(--emerald);display:flex;align-items:center;justify-content:center}
+    nav .links{display:flex;align-items:center}
     nav .links a{color:var(--muted);font-size:15px;margin-left:24px}
     nav .links a:hover{color:var(--ink)}
+    /* sélecteur de langue */
+    .langsw{display:inline-flex;gap:4px;margin-left:24px}
+    .langsw a{font-size:13px;font-weight:700;color:var(--muted);padding:3px 8px;border-radius:8px;margin-left:0;cursor:pointer}
+    .langsw a.active{background:var(--emerald);color:#fff}
     /* hero */
     .hero{text-align:center;padding:64px 0 72px;background:radial-gradient(120% 90% at 50% 0%,#eafaf0 0%,#ffffff 60%)}
     .hero .big{font-size:64px;line-height:1;margin-bottom:18px}
@@ -51,7 +65,7 @@
     footer .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center}
     footer a{color:var(--muted);margin-right:20px}
     footer a:hover{color:var(--ink)}
-    @media(max-width:760px){.grid,.steps{grid-template-columns:1fr}.hero h1{font-size:26px}.hero .big{font-size:48px}.band{padding:32px 20px}}
+    @media(max-width:760px){.grid,.steps{grid-template-columns:1fr}.hero h1{font-size:26px}.hero .big{font-size:48px}.band{padding:32px 20px}.nav-links-text{display:none}}
   </style>
 </head>
 <body>
@@ -65,9 +79,13 @@
         <span class="wordmark">t<span class="ii">ii</span>pee</span>
       </a>
       <div class="links">
-        <a href="#comment">Comment ça marche</a>
-        <a href="#parents">Pour les parents</a>
-        <a href="mailto:contact@tiipee.com">Contact</a>
+        <a class="nav-links-text" href="#comment" data-i18n="nav.how">Comment ça marche</a>
+        <a class="nav-links-text" href="#parents" data-i18n="nav.parents">Pour les parents</a>
+        <a class="nav-links-text" href="mailto:contact@tiipee.com" data-i18n="nav.contact">Contact</a>
+        <span class="langsw">
+          <a data-lang="fr">FR</a>
+          <a data-lang="en">EN</a>
+        </span>
       </div>
     </nav>
   </div>
@@ -75,32 +93,32 @@
   <header class="hero">
     <div class="wrap">
       <div class="big wordmark">t<span class="ii">ii</span>pee</div>
-      <h1>Plus tu décroches, plus tu gagnes.</h1>
-      <p>Tiipee transforme le temps loin des écrans en argent de poche. Le parent fixe les règles, l'enfant gagne sa récompense en posant son téléphone.</p>
-      <a class="cta" href="mailto:contact@tiipee.com">Être prévenu du lancement</a>
-      <span class="soon">📱 Bientôt disponible sur Google Play</span>
+      <h1 data-i18n="hero.h1">Plus tu décroches, plus tu gagnes.</h1>
+      <p data-i18n="hero.p">Tiipee transforme le temps loin des écrans en argent de poche. Le parent fixe les règles, l'enfant gagne sa récompense en posant son téléphone.</p>
+      <a class="cta" href="mailto:contact@tiipee.com" data-i18n="hero.cta">Être prévenu du lancement</a>
+      <span class="soon" data-i18n="hero.soon">📱 Bientôt disponible sur Google Play</span>
     </div>
   </header>
 
   <section id="comment">
     <div class="wrap">
-      <h2 class="sec-title">Comment ça marche</h2>
-      <p class="sec-sub">Simple, transparent, motivant — pour toute la famille.</p>
+      <h2 class="sec-title" data-i18n="how.title">Comment ça marche</h2>
+      <p class="sec-sub" data-i18n="how.sub">Simple, transparent, motivant — pour toute la famille.</p>
       <div class="steps">
         <div class="step">
           <div class="n">1</div>
-          <h3>Le parent fixe les règles</h3>
-          <p>Un socle garanti chaque semaine, un bonus par temps d'écran évité, un plafond journalier et une plage horaire. Zéro conflit.</p>
+          <h3 data-i18n="step1.h">Le parent fixe les règles</h3>
+          <p data-i18n="step1.p">Un socle garanti chaque semaine, un bonus par temps d'écran évité, un plafond journalier et une plage horaire. Zéro conflit.</p>
         </div>
         <div class="step">
           <div class="n">2</div>
-          <h3>L'enfant pose son téléphone</h3>
-          <p>Chaque pause d'écran pendant la plage active fait grimper ses gains, en temps réel. Séries, badges et objectifs l'encouragent.</p>
+          <h3 data-i18n="step2.h">L'enfant pose son téléphone</h3>
+          <p data-i18n="step2.p">Chaque pause d'écran pendant la plage active fait grimper ses gains, en temps réel. Séries, badges et objectifs l'encouragent.</p>
         </div>
         <div class="step">
           <div class="n">3</div>
-          <h3>Le parent verse la récompense</h3>
-          <p>En fin de semaine, le parent valide le versement et le règle par son moyen habituel. Argent réel, mérité.</p>
+          <h3 data-i18n="step3.h">Le parent verse la récompense</h3>
+          <p data-i18n="step3.p">En fin de semaine, le parent valide le versement et le règle par son moyen habituel. Argent réel, mérité.</p>
         </div>
       </div>
     </div>
@@ -108,15 +126,15 @@
 
   <section style="background:var(--soft)">
     <div class="wrap">
-      <h2 class="sec-title">Ce que Tiipee apporte</h2>
-      <p class="sec-sub">Une approche bienveillante du temps d'écran.</p>
+      <h2 class="sec-title" data-i18n="benefits.title">Ce que Tiipee apporte</h2>
+      <p class="sec-sub" data-i18n="benefits.sub">Une approche bienveillante du temps d'écran.</p>
       <div class="grid">
-        <div class="card"><div class="emoji">📵</div><h3>Récompense positive</h3><p>On valorise l'effort de décrocher, plutôt que d'interdire. L'enfant est acteur, pas surveillé.</p></div>
-        <div class="card"><div class="emoji">🛡️</div><h3>Vous gardez le contrôle</h3><p>Montants, plafonds, horaires, jour de versement : tout est paramétrable par le parent.</p></div>
-        <div class="card"><div class="emoji">📱</div><h3>Bien-être numérique</h3><p>Suivez le temps d'écran de votre enfant, en toute transparence, sans flicage par application.</p></div>
-        <div class="card"><div class="emoji">🔥</div><h3>Motivation durable</h3><p>Séries de jours, badges et défis quotidiens entretiennent l'habitude sur le long terme.</p></div>
-        <div class="card"><div class="emoji">💶</div><h3>De l'argent réel</h3><p>Pas de points virtuels : un vrai argent de poche, versé par le parent, qui responsabilise.</p></div>
-        <div class="card"><div class="emoji">🔒</div><h3>Données protégées</h3><p>Conforme RGPD, données hébergées en France, protection renforcée des mineurs.</p></div>
+        <div class="card"><div class="emoji">📵</div><h3 data-i18n="b1.h">Récompense positive</h3><p data-i18n="b1.p">On valorise l'effort de décrocher, plutôt que d'interdire. L'enfant est acteur, pas surveillé.</p></div>
+        <div class="card"><div class="emoji">🛡️</div><h3 data-i18n="b2.h">Vous gardez le contrôle</h3><p data-i18n="b2.p">Montants, plafonds, horaires, jour de versement : tout est paramétrable par le parent.</p></div>
+        <div class="card"><div class="emoji">📱</div><h3 data-i18n="b3.h">Bien-être numérique</h3><p data-i18n="b3.p">Suivez le temps d'écran de votre enfant, en toute transparence, sans flicage par application.</p></div>
+        <div class="card"><div class="emoji">🔥</div><h3 data-i18n="b4.h">Motivation durable</h3><p data-i18n="b4.p">Séries de jours, badges et défis quotidiens entretiennent l'habitude sur le long terme.</p></div>
+        <div class="card"><div class="emoji">💶</div><h3 data-i18n="b5.h">De l'argent réel</h3><p data-i18n="b5.p">Pas de points virtuels : un vrai argent de poche, versé par le parent, qui responsabilise.</p></div>
+        <div class="card"><div class="emoji">🔒</div><h3 data-i18n="b6.h">Données protégées</h3><p data-i18n="b6.p">Conforme RGPD, données hébergées en France, protection renforcée des mineurs.</p></div>
       </div>
     </div>
   </section>
@@ -124,22 +142,120 @@
   <section id="parents">
     <div class="wrap">
       <div class="band">
-        <h2>Pensé pour les parents, adopté par les enfants</h2>
-        <p>T<span class="ii">ii</span>pee remplace les disputes autour du téléphone par un objectif commun. L'enfant comprend la valeur de son temps, le parent encourage sans punir.</p>
+        <h2 data-i18n="band.h">Pensé pour les parents, adopté par les enfants</h2>
+        <p data-i18n-html="band.p">T<span class="ii">ii</span>pee remplace les disputes autour du téléphone par un objectif commun. L'enfant comprend la valeur de son temps, le parent encourage sans punir.</p>
       </div>
     </div>
   </section>
 
   <footer>
     <div class="wrap row">
-      <div>© 2026 Tiipee — Tous droits réservés</div>
+      <div data-i18n="footer.rights">© 2026 Tiipee — Tous droits réservés</div>
       <div>
-        <a href="/confidentialite.html">Confidentialité</a>
-        <a href="/mentions-legales.html">Mentions légales</a>
+        <a href="/confidentialite.html" data-i18n="footer.privacy">Confidentialité</a>
+        <a href="/mentions-legales.html" data-i18n="footer.legal">Mentions légales</a>
         <a href="mailto:contact@tiipee.com">contact@tiipee.com</a>
       </div>
     </div>
   </footer>
+
+  <script>
+    // i18n léger : le HTML par défaut est en français (fallback si JS coupé).
+    // On échange les textes [data-i18n] / [data-i18n-html] selon la langue.
+    var I18N = {
+      fr: {
+        "meta.title": "Tiipee — Plus tu décroches, plus tu gagnes.",
+        "meta.desc": "Tiipee récompense les enfants qui réduisent leur temps d'écran. Le parent fixe les règles, l'enfant gagne son argent de poche en posant son téléphone.",
+        "nav.how": "Comment ça marche", "nav.parents": "Pour les parents", "nav.contact": "Contact",
+        "hero.h1": "Plus tu décroches, plus tu gagnes.",
+        "hero.p": "Tiipee transforme le temps loin des écrans en argent de poche. Le parent fixe les règles, l'enfant gagne sa récompense en posant son téléphone.",
+        "hero.cta": "Être prévenu du lancement",
+        "hero.soon": "📱 Bientôt disponible sur Google Play",
+        "how.title": "Comment ça marche",
+        "how.sub": "Simple, transparent, motivant — pour toute la famille.",
+        "step1.h": "Le parent fixe les règles",
+        "step1.p": "Un socle garanti chaque semaine, un bonus par temps d'écran évité, un plafond journalier et une plage horaire. Zéro conflit.",
+        "step2.h": "L'enfant pose son téléphone",
+        "step2.p": "Chaque pause d'écran pendant la plage active fait grimper ses gains, en temps réel. Séries, badges et objectifs l'encouragent.",
+        "step3.h": "Le parent verse la récompense",
+        "step3.p": "En fin de semaine, le parent valide le versement et le règle par son moyen habituel. Argent réel, mérité.",
+        "benefits.title": "Ce que Tiipee apporte",
+        "benefits.sub": "Une approche bienveillante du temps d'écran.",
+        "b1.h": "Récompense positive", "b1.p": "On valorise l'effort de décrocher, plutôt que d'interdire. L'enfant est acteur, pas surveillé.",
+        "b2.h": "Vous gardez le contrôle", "b2.p": "Montants, plafonds, horaires, jour de versement : tout est paramétrable par le parent.",
+        "b3.h": "Bien-être numérique", "b3.p": "Suivez le temps d'écran de votre enfant, en toute transparence, sans flicage par application.",
+        "b4.h": "Motivation durable", "b4.p": "Séries de jours, badges et défis quotidiens entretiennent l'habitude sur le long terme.",
+        "b5.h": "De l'argent réel", "b5.p": "Pas de points virtuels : un vrai argent de poche, versé par le parent, qui responsabilise.",
+        "b6.h": "Données protégées", "b6.p": "Conforme RGPD, données hébergées en France, protection renforcée des mineurs.",
+        "band.h": "Pensé pour les parents, adopté par les enfants",
+        "band.p": "T<span class=\"ii\">ii</span>pee remplace les disputes autour du téléphone par un objectif commun. L'enfant comprend la valeur de son temps, le parent encourage sans punir.",
+        "footer.rights": "© 2026 Tiipee — Tous droits réservés",
+        "footer.privacy": "Confidentialité", "footer.legal": "Mentions légales"
+      },
+      en: {
+        "meta.title": "Tiipee — The more you unplug, the more you earn.",
+        "meta.desc": "Tiipee rewards kids for cutting screen time. Parents set the rules, kids earn their pocket money by putting the phone down.",
+        "nav.how": "How it works", "nav.parents": "For parents", "nav.contact": "Contact",
+        "hero.h1": "The more you unplug, the more you earn.",
+        "hero.p": "Tiipee turns time away from screens into pocket money. Parents set the rules; kids earn their reward by putting the phone down.",
+        "hero.cta": "Get notified at launch",
+        "hero.soon": "📱 Coming soon on Google Play",
+        "how.title": "How it works",
+        "how.sub": "Simple, transparent, motivating — for the whole family.",
+        "step1.h": "Parents set the rules",
+        "step1.p": "A guaranteed weekly base, a bonus for screen time avoided, a daily cap and an active time window. Zero conflict.",
+        "step2.h": "Kids put the phone down",
+        "step2.p": "Every screen break during the active window grows their earnings in real time. Streaks, badges and goals keep them going.",
+        "step3.h": "Parents pay the reward",
+        "step3.p": "At the end of the week, parents approve the payout and pay it their usual way. Real money, truly earned.",
+        "benefits.title": "What Tiipee brings",
+        "benefits.sub": "A positive approach to screen time.",
+        "b1.h": "Positive reward", "b1.p": "We reward the effort of unplugging instead of banning. Kids take part — they're not policed.",
+        "b2.h": "You stay in control", "b2.p": "Amounts, caps, schedule, payout day: everything is set by the parent.",
+        "b3.h": "Digital wellbeing", "b3.p": "Track your child's screen time transparently, without app-by-app surveillance.",
+        "b4.h": "Lasting motivation", "b4.p": "Day streaks, badges and daily challenges keep the habit going long term.",
+        "b5.h": "Real money", "b5.p": "No virtual points: real pocket money, paid by the parent, that builds responsibility.",
+        "b6.h": "Protected data", "b6.p": "GDPR-compliant, data hosted in France, with reinforced protection for minors.",
+        "band.h": "Built for parents, loved by kids",
+        "band.p": "T<span class=\"ii\">ii</span>pee replaces phone fights with a shared goal. Kids learn the value of their time; parents encourage without punishing.",
+        "footer.rights": "© 2026 Tiipee — All rights reserved",
+        "footer.privacy": "Privacy", "footer.legal": "Legal notice"
+      }
+    };
+
+    function applyLang(lang){
+      if(!I18N[lang]) lang = "fr";
+      var t = I18N[lang];
+      document.documentElement.lang = lang;
+      if(t["meta.title"]) document.title = t["meta.title"];
+      var md = document.querySelector('meta[name="description"]');
+      if(md && t["meta.desc"]) md.setAttribute("content", t["meta.desc"]);
+      document.querySelectorAll("[data-i18n]").forEach(function(el){
+        var k = el.getAttribute("data-i18n"); if(t[k] != null) el.textContent = t[k];
+      });
+      document.querySelectorAll("[data-i18n-html]").forEach(function(el){
+        var k = el.getAttribute("data-i18n-html"); if(t[k] != null) el.innerHTML = t[k];
+      });
+      document.querySelectorAll(".langsw a[data-lang]").forEach(function(b){
+        b.classList.toggle("active", b.getAttribute("data-lang") === lang);
+      });
+      try { localStorage.setItem("lang", lang); } catch(e){}
+      try { var u = new URL(location.href); u.searchParams.set("lang", lang); history.replaceState(null, "", u); } catch(e){}
+    }
+
+    function detectLang(){
+      try { var p = new URLSearchParams(location.search).get("lang"); if(p) return p; } catch(e){}
+      try { var s = localStorage.getItem("lang"); if(s) return s; } catch(e){}
+      return (navigator.language || "fr").toLowerCase().indexOf("fr") === 0 ? "fr" : "en";
+    }
+
+    document.addEventListener("DOMContentLoaded", function(){
+      applyLang(detectLang());
+      document.querySelectorAll(".langsw a[data-lang]").forEach(function(b){
+        b.addEventListener("click", function(e){ e.preventDefault(); applyLang(b.getAttribute("data-lang")); });
+      });
+    });
+  </script>
 
 </body>
 </html>
