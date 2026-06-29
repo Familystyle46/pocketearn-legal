@@ -56,6 +56,11 @@
     .step .n{width:38px;height:38px;border-radius:50%;background:var(--emerald);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
     .step h3{font-size:17px;margin-bottom:6px}
     .step p{color:var(--muted);font-size:15px}
+    /* captures d'écran */
+    .shots{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:start}
+    .shot{text-align:center}
+    .shot img{width:100%;max-width:240px;border-radius:24px;box-shadow:0 18px 50px rgba(10,26,14,.18);border:1px solid #e6efe9}
+    .shot p{color:var(--muted);font-size:14px;margin:14px auto 0;max-width:240px}
     .band{background:var(--ink);color:#fff;border-radius:24px;padding:48px;text-align:center;margin:24px 0}
     .band h2{font-size:26px;font-weight:800;margin-bottom:12px}
     .band p{color:#bfe9cf;max-width:620px;margin:0 auto;font-size:16px}
@@ -65,7 +70,7 @@
     footer .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center}
     footer a{color:var(--muted);margin-right:20px}
     footer a:hover{color:var(--ink)}
-    @media(max-width:760px){.grid,.steps{grid-template-columns:1fr}.hero h1{font-size:26px}.hero .big{font-size:48px}.band{padding:32px 20px}.nav-links-text{display:none}}
+    @media(max-width:760px){.grid,.steps,.shots{grid-template-columns:1fr}.shots{gap:40px}.hero h1{font-size:26px}.hero .big{font-size:48px}.band{padding:32px 20px}.nav-links-text{display:none}}
   </style>
 </head>
 <body>
@@ -119,6 +124,27 @@
           <div class="n">3</div>
           <h3 data-i18n="step3.h">Le parent verse la récompense</h3>
           <p data-i18n="step3.p">En fin de semaine, le parent valide le versement et le règle par son moyen habituel. Argent réel, mérité.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="apercu">
+    <div class="wrap">
+      <h2 class="sec-title" data-i18n="shots.title">Un aperçu de l'app</h2>
+      <p class="sec-sub" data-i18n="shots.sub">Côté enfant comme côté parent — clair, motivant, sans prise de tête.</p>
+      <div class="shots">
+        <div class="shot">
+          <img src="/assets/screen-child.jpg" alt="Tiipee — écran enfant" loading="lazy">
+          <p data-i18n="shot1.cap">L'enfant voit ses gains grimper en posant son téléphone, avec séries et badges.</p>
+        </div>
+        <div class="shot">
+          <img src="/assets/screen-parent.jpg" alt="Tiipee — tableau de bord parent" loading="lazy">
+          <p data-i18n="shot2.cap">Le parent suit chaque enfant et valide le versement en un geste.</p>
+        </div>
+        <div class="shot">
+          <img src="/assets/screen-detail.jpg" alt="Tiipee — suivi détaillé" loading="lazy">
+          <p data-i18n="shot3.cap">Montants, pauses écran et temps d'écran : tout est transparent.</p>
         </div>
       </div>
     </div>
@@ -179,6 +205,11 @@
         "step2.p": "Chaque pause d'écran pendant la plage active fait grimper ses gains, en temps réel. Séries, badges et objectifs l'encouragent.",
         "step3.h": "Le parent verse la récompense",
         "step3.p": "En fin de semaine, le parent valide le versement et le règle par son moyen habituel. Argent réel, mérité.",
+        "shots.title": "Un aperçu de l'app",
+        "shots.sub": "Côté enfant comme côté parent — clair, motivant, sans prise de tête.",
+        "shot1.cap": "L'enfant voit ses gains grimper en posant son téléphone, avec séries et badges.",
+        "shot2.cap": "Le parent suit chaque enfant et valide le versement en un geste.",
+        "shot3.cap": "Montants, pauses écran et temps d'écran : tout est transparent.",
         "benefits.title": "Ce que Tiipee apporte",
         "benefits.sub": "Une approche bienveillante du temps d'écran.",
         "b1.h": "Récompense positive", "b1.p": "On valorise l'effort de décrocher, plutôt que d'interdire. L'enfant est acteur, pas surveillé.",
@@ -208,6 +239,11 @@
         "step2.p": "Every screen break during the active window grows their earnings in real time. Streaks, badges and goals keep them going.",
         "step3.h": "Parents pay the reward",
         "step3.p": "At the end of the week, parents approve the payout and pay it their usual way. Real money, truly earned.",
+        "shots.title": "A look inside the app",
+        "shots.sub": "For kids and parents alike — clear, motivating, hassle-free.",
+        "shot1.cap": "Kids watch their earnings grow by putting the phone down, with streaks and badges.",
+        "shot2.cap": "Parents track each child and approve the payout in one tap.",
+        "shot3.cap": "Amounts, screen breaks and screen time: everything is transparent.",
         "benefits.title": "What Tiipee brings",
         "benefits.sub": "A positive approach to screen time.",
         "b1.h": "Positive reward", "b1.p": "We reward the effort of unplugging instead of banning. Kids take part — they're not policed.",
