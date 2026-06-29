@@ -1,0 +1,40 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A1A0E"/>
+      <stop offset="100%" stop-color="#0F2A16"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00C853"/>
+      <stop offset="100%" stop-color="#00A040"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- decorative coin circles -->
+  <circle cx="1080" cy="90" r="120" fill="#00C853" opacity="0.08"/>
+  <circle cx="1150" cy="540" r="160" fill="#FFD700" opacity="0.06"/>
+
+  <!-- logo mark -->
+  <g transform="translate(80,80)">
+    <rect width="64" height="64" rx="16" fill="#00C853"/>
+    <circle cx="24" cy="22" r="5" fill="white"/>
+    <rect x="20" y="29" width="9" height="27" rx="4.5" fill="white"/>
+    <circle cx="40" cy="22" r="5" fill="white"/>
+    <rect x="36" y="29" width="9" height="27" rx="4.5" fill="white"/>
+  </g>
+  <text x="160" y="122" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="34" font-weight="800" fill="#FFFFFF">t<tspan fill="#FFD700">ii</tspan>pee</text>
+
+  <!-- headline -->
+  <text x="80" y="280" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="62" font-weight="800" fill="#FFFFFF">The more you disconnect,</text>
+  <text x="80" y="356" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="62" font-weight="800" fill="#00C853">the more you earn.</text>
+
+  <!-- subtitle -->
+  <text x="80" y="420" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="26" fill="#B9C7BD">Screen-free time turned into pocket money.</text>
+
+  <!-- badge pill -->
+  <rect x="80" y="470" width="430" height="56" rx="28" fill="url(#badge)"/>
+  <text x="295" y="506" text-anchor="middle" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="22" font-weight="700" fill="#FFFFFF">For parents and their teens</text>
+
+  <text x="80" y="580" font-family="-apple-system,Helvetica,Arial,sans-serif" font-size="22" fill="#5b6b60">tiipee.com</text>
+</svg>

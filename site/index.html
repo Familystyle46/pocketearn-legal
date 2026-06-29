@@ -12,8 +12,15 @@
   <meta property="og:url" content="https://tiipee.com/">
   <meta property="og:title" content="Tiipee — Plus tu décroches, plus tu gagnes.">
   <meta property="og:description" content="Le temps loin des écrans transformé en argent de poche. Le parent fixe les règles, l'enfant gagne en posant son téléphone.">
+  <meta property="og:image" content="https://tiipee.com/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:locale" content="fr_FR">
   <meta property="og:locale:alternate" content="en_US">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tiipee — Plus tu décroches, plus tu gagnes.">
+  <meta name="twitter:description" content="Le temps loin des écrans transformé en argent de poche.">
+  <meta name="twitter:image" content="https://tiipee.com/assets/og-image.png">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='24' fill='%2300C853'/%3E%3Ccircle cx='38' cy='32' r='6' fill='white'/%3E%3Crect x='32' y='42' width='12' height='38' rx='6' fill='white'/%3E%3Ccircle cx='62' cy='32' r='6' fill='white'/%3E%3Crect x='56' y='42' width='12' height='38' rx='6' fill='white'/%3E%3C/svg%3E">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -320,6 +327,14 @@
       if(t["meta.title"]) document.title = t["meta.title"];
       var md = document.querySelector('meta[name="description"]');
       if(md && t["meta.desc"]) md.setAttribute("content", t["meta.desc"]);
+      var ogImg = document.querySelector('meta[property="og:image"]'), twImg = document.querySelector('meta[name="twitter:image"]');
+      var imgUrl = "https://tiipee.com/assets/og-image" + (lang === "en" ? "-en" : "") + ".png";
+      if(ogImg) ogImg.setAttribute("content", imgUrl);
+      if(twImg) twImg.setAttribute("content", imgUrl);
+      var ogTitle = document.querySelector('meta[property="og:title"]'), twTitle = document.querySelector('meta[name="twitter:title"]');
+      if(t["meta.title"]){ if(ogTitle) ogTitle.setAttribute("content", t["meta.title"]); if(twTitle) twTitle.setAttribute("content", t["meta.title"]); }
+      var ogDesc = document.querySelector('meta[property="og:description"]'), twDesc = document.querySelector('meta[name="twitter:description"]');
+      if(t["meta.desc"]){ if(ogDesc) ogDesc.setAttribute("content", t["meta.desc"]); if(twDesc) twDesc.setAttribute("content", t["meta.desc"]); }
       document.querySelectorAll("[data-i18n]").forEach(function(el){
         var k = el.getAttribute("data-i18n"); if(t[k] != null) el.textContent = t[k];
       });
@@ -331,6 +346,13 @@
       });
       document.querySelectorAll(".langsw a[data-lang]").forEach(function(b){
         b.classList.toggle("active", b.getAttribute("data-lang") === lang);
+      });
+      var suffix = lang === "en" ? "-en" : "";
+      document.querySelectorAll('a[href="/confidentialite.html"], a[href="/confidentialite-en.html"]').forEach(function(a){
+        a.setAttribute("href", "/confidentialite" + suffix + ".html");
+      });
+      document.querySelectorAll('a[href="/mentions-legales.html"], a[href="/mentions-legales-en.html"]').forEach(function(a){
+        a.setAttribute("href", "/mentions-legales" + suffix + ".html");
       });
       try { localStorage.setItem("lang", lang); } catch(e){}
       try { var u = new URL(location.href); u.searchParams.set("lang", lang); history.replaceState(null, "", u); } catch(e){}
