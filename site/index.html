@@ -65,6 +65,18 @@
     .band h2{font-size:26px;font-weight:800;margin-bottom:12px}
     .band p{color:#bfe9cf;max-width:620px;margin:0 auto;font-size:16px}
     .band .ii{color:var(--gold)}
+    /* préinscription */
+    .waitlist{background:linear-gradient(135deg,#00C853,#00A040);border-radius:24px;padding:48px 24px;text-align:center;margin:24px 0;color:#fff}
+    .waitlist h2{font-size:26px;font-weight:800;margin-bottom:10px}
+    .waitlist .lead{color:rgba(255,255,255,.92);max-width:520px;margin:0 auto 24px;font-size:16px}
+    .wl-row{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:520px;margin:0 auto}
+    .wl-row input[type=email]{flex:1;min-width:220px;padding:14px 16px;border:none;border-radius:12px;font-size:16px;color:var(--ink)}
+    .wl-row button{background:var(--ink);color:#fff;font-weight:700;border:none;padding:14px 26px;border-radius:12px;font-size:16px;cursor:pointer}
+    .wl-row button:hover{opacity:.92}
+    .wl-row button:disabled{opacity:.6;cursor:default}
+    .wl-consent{display:flex;align-items:flex-start;gap:8px;justify-content:center;max-width:520px;margin:14px auto 0;font-size:13px;color:rgba(255,255,255,.92);text-align:left}
+    .wl-consent a{color:#fff;text-decoration:underline}
+    .wl-msg{margin-top:14px;font-size:14px;font-weight:700;min-height:20px;color:#fff}
     /* footer */
     footer{border-top:1px solid #e6efe9;padding:40px 0;color:var(--muted);font-size:14px}
     footer .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center}
@@ -100,7 +112,7 @@
       <div class="big wordmark">t<span class="ii">ii</span>pee</div>
       <h1 data-i18n="hero.h1">Plus tu décroches, plus tu gagnes.</h1>
       <p data-i18n="hero.p">Tiipee transforme le temps loin des écrans en argent de poche. Le parent fixe les règles, l'enfant gagne sa récompense en posant son téléphone.</p>
-      <a class="cta" href="mailto:contact@tiipee.com" data-i18n="hero.cta">Être prévenu du lancement</a>
+      <a class="cta" href="#waitlist" data-i18n="hero.cta">Être prévenu du lancement</a>
       <span class="soon" data-i18n="hero.soon">📱 Bientôt disponible sur Google Play</span>
     </div>
   </header>
@@ -143,8 +155,8 @@
           <p data-i18n="shot2.cap">Le parent suit chaque enfant et valide le versement en un geste.</p>
         </div>
         <div class="shot">
-          <img src="/assets/screen-detail.jpg" alt="Tiipee — suivi détaillé" loading="lazy">
-          <p data-i18n="shot3.cap">Montants, pauses écran et temps d'écran : tout est transparent.</p>
+          <img src="/assets/screen-detail.jpg" alt="Tiipee — configuration des règles" loading="lazy">
+          <p data-i18n="shot3.cap">Le parent règle le socle garanti, le bonus et les plafonds comme il veut.</p>
         </div>
       </div>
     </div>
@@ -170,6 +182,26 @@
       <div class="band">
         <h2 data-i18n="band.h">Pensé pour les parents, adopté par les enfants</h2>
         <p data-i18n-html="band.p">T<span class="ii">ii</span>pee remplace les disputes autour du téléphone par un objectif commun. L'enfant comprend la valeur de son temps, le parent encourage sans punir.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="waitlist">
+    <div class="wrap">
+      <div class="waitlist">
+        <h2 data-i18n="waitlist.title">Sois prévenu·e au lancement</h2>
+        <p class="lead" data-i18n="waitlist.sub">Laisse ton email : tu seras parmi les premiers informés de la sortie de Tiipee.</p>
+        <form id="wl-form" novalidate>
+          <div class="wl-row">
+            <input type="email" name="email" required autocomplete="email" data-i18n-ph="waitlist.placeholder" placeholder="ton@email.com">
+            <button type="submit" data-i18n="waitlist.btn">Je m'inscris</button>
+          </div>
+          <label class="wl-consent">
+            <input type="checkbox" name="consent" required>
+            <span data-i18n-html="waitlist.consent">J'accepte d'être recontacté·e par email et j'ai lu la <a href="/confidentialite.html">politique de confidentialité</a>.</span>
+          </label>
+          <div class="wl-msg" id="wl-msg" role="status" aria-live="polite"></div>
+        </form>
       </div>
     </div>
   </section>
@@ -209,7 +241,7 @@
         "shots.sub": "Côté enfant comme côté parent — clair, motivant, sans prise de tête.",
         "shot1.cap": "L'enfant voit ses gains grimper en posant son téléphone, avec séries et badges.",
         "shot2.cap": "Le parent suit chaque enfant et valide le versement en un geste.",
-        "shot3.cap": "Montants, pauses écran et temps d'écran : tout est transparent.",
+        "shot3.cap": "Le parent règle le socle garanti, le bonus et les plafonds comme il veut.",
         "benefits.title": "Ce que Tiipee apporte",
         "benefits.sub": "Une approche bienveillante du temps d'écran.",
         "b1.h": "Récompense positive", "b1.p": "On valorise l'effort de décrocher, plutôt que d'interdire. L'enfant est acteur, pas surveillé.",
@@ -221,7 +253,18 @@
         "band.h": "Pensé pour les parents, adopté par les enfants",
         "band.p": "T<span class=\"ii\">ii</span>pee remplace les disputes autour du téléphone par un objectif commun. L'enfant comprend la valeur de son temps, le parent encourage sans punir.",
         "footer.rights": "© 2026 Tiipee — Tous droits réservés",
-        "footer.privacy": "Confidentialité", "footer.legal": "Mentions légales"
+        "footer.privacy": "Confidentialité", "footer.legal": "Mentions légales",
+        "waitlist.title": "Sois prévenu·e au lancement",
+        "waitlist.sub": "Laisse ton email : tu seras parmi les premiers informés de la sortie de Tiipee.",
+        "waitlist.placeholder": "ton@email.com",
+        "waitlist.btn": "Je m'inscris",
+        "waitlist.consent": "J'accepte d'être recontacté·e par email et j'ai lu la <a href=\"/confidentialite.html\">politique de confidentialité</a>.",
+        "waitlist.sending": "Envoi…",
+        "waitlist.success": "Merci ! Tu es bien inscrit·e. 🎉",
+        "waitlist.already": "Tu es déjà sur la liste. 👍",
+        "waitlist.invalid": "Entre une adresse email valide.",
+        "waitlist.consent_required": "Coche la case pour continuer.",
+        "waitlist.error": "Oups, une erreur est survenue. Réessaie."
       },
       en: {
         "meta.title": "Tiipee — The more you unplug, the more you earn.",
@@ -243,7 +286,7 @@
         "shots.sub": "For kids and parents alike — clear, motivating, hassle-free.",
         "shot1.cap": "Kids watch their earnings grow by putting the phone down, with streaks and badges.",
         "shot2.cap": "Parents track each child and approve the payout in one tap.",
-        "shot3.cap": "Amounts, screen breaks and screen time: everything is transparent.",
+        "shot3.cap": "Parents set the guaranteed base, the bonus and the caps however they like.",
         "benefits.title": "What Tiipee brings",
         "benefits.sub": "A positive approach to screen time.",
         "b1.h": "Positive reward", "b1.p": "We reward the effort of unplugging instead of banning. Kids take part — they're not policed.",
@@ -255,7 +298,18 @@
         "band.h": "Built for parents, loved by kids",
         "band.p": "T<span class=\"ii\">ii</span>pee replaces phone fights with a shared goal. Kids learn the value of their time; parents encourage without punishing.",
         "footer.rights": "© 2026 Tiipee — All rights reserved",
-        "footer.privacy": "Privacy", "footer.legal": "Legal notice"
+        "footer.privacy": "Privacy", "footer.legal": "Legal notice",
+        "waitlist.title": "Get notified at launch",
+        "waitlist.sub": "Drop your email and be among the first to know when Tiipee goes live.",
+        "waitlist.placeholder": "you@email.com",
+        "waitlist.btn": "Notify me",
+        "waitlist.consent": "I agree to be contacted by email and have read the <a href=\"/confidentialite.html\">privacy policy</a>.",
+        "waitlist.sending": "Sending…",
+        "waitlist.success": "Thanks! You're on the list. 🎉",
+        "waitlist.already": "You're already on the list. 👍",
+        "waitlist.invalid": "Please enter a valid email address.",
+        "waitlist.consent_required": "Please tick the box to continue.",
+        "waitlist.error": "Oops, something went wrong. Please try again."
       }
     };
 
@@ -272,6 +326,9 @@
       document.querySelectorAll("[data-i18n-html]").forEach(function(el){
         var k = el.getAttribute("data-i18n-html"); if(t[k] != null) el.innerHTML = t[k];
       });
+      document.querySelectorAll("[data-i18n-ph]").forEach(function(el){
+        var k = el.getAttribute("data-i18n-ph"); if(t[k] != null) el.setAttribute("placeholder", t[k]);
+      });
       document.querySelectorAll(".langsw a[data-lang]").forEach(function(b){
         b.classList.toggle("active", b.getAttribute("data-lang") === lang);
       });
@@ -285,11 +342,54 @@
       return (navigator.language || "fr").toLowerCase().indexOf("fr") === 0 ? "fr" : "en";
     }
 
+    // ── Préinscription (waitlist) → Supabase ────────────────────────────
+    // Clé publique (publishable/anon) : conçue pour le navigateur. La table a
+    // RLS activé avec insertion anonyme uniquement (le public ne peut pas lire).
+    var SUPA_URL = "https://yphctchmugijwecscxmx.supabase.co";
+    var SUPA_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwaGN0Y2htdWdpandlY3NjeG14Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAzMDY0ODYsImV4cCI6MjA5NTg4MjQ4Nn0.kkwB4JjoB1ZWrDg1Fz7duFASu4bwBkoqE8ew8PAYmjc";
+
+    function wlMsg(key){
+      var lang = document.documentElement.lang || "fr";
+      var t = I18N[lang] || I18N.fr;
+      var el = document.getElementById("wl-msg");
+      if(el) el.textContent = t[key] || "";
+    }
+
+    function initWaitlist(){
+      var form = document.getElementById("wl-form");
+      if(!form) return;
+      form.addEventListener("submit", function(e){
+        e.preventDefault();
+        var email = (form.email.value || "").trim();
+        var consent = form.querySelector('input[name="consent"]').checked;
+        if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ wlMsg("waitlist.invalid"); return; }
+        if(!consent){ wlMsg("waitlist.consent_required"); return; }
+        var btn = form.querySelector("button");
+        btn.disabled = true; wlMsg("waitlist.sending");
+        fetch(SUPA_URL + "/rest/v1/waitlist", {
+          method: "POST",
+          headers: {
+            "apikey": SUPA_KEY,
+            "Authorization": "Bearer " + SUPA_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+          },
+          body: JSON.stringify({ email: email, locale: (document.documentElement.lang || "fr"), source: "landing" })
+        }).then(function(res){
+          if(res.ok){ form.reset(); wlMsg("waitlist.success"); }
+          else if(res.status === 409){ form.reset(); wlMsg("waitlist.already"); }
+          else { wlMsg("waitlist.error"); }
+        }).catch(function(){ wlMsg("waitlist.error"); })
+          .finally(function(){ btn.disabled = false; });
+      });
+    }
+
     document.addEventListener("DOMContentLoaded", function(){
       applyLang(detectLang());
       document.querySelectorAll(".langsw a[data-lang]").forEach(function(b){
         b.addEventListener("click", function(e){ e.preventDefault(); applyLang(b.getAttribute("data-lang")); });
       });
+      initWaitlist();
     });
   </script>
 
