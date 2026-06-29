@@ -42,3 +42,10 @@ supabase/functions/.env
 # Divers
 *.log
 coverage/
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
